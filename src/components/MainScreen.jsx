@@ -1,26 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Shield, PlusCircle, LogIn, RefreshCw, AlertCircle } from 'lucide-react';
-
-const RECONNECT_TOKEN_KEY = 'card_bluff_reconnect_token';
+import React, { useState } from 'react';
+import { Shield, PlusCircle, LogIn, AlertCircle } from 'lucide-react';
 
 export default function MainScreen({
   onCreateRoom,
   onJoinRoom,
-  onReconnect,
   errorMessage,
   isLoading,
 }) {
   const [activeTab, setActiveTab] = useState('create'); // 'create' | 'join'
   const [playerName, setPlayerName] = useState('');
   const [roomId, setRoomId] = useState('');
-  const [hasSavedToken, setHasSavedToken] = useState(false);
-
-  useEffect(() => {
-    const token = localStorage.getItem(RECONNECT_TOKEN_KEY);
-    if (token) {
-      setHasSavedToken(true);
-    }
-  }, []);
 
   const handleCreateSubmit = (e) => {
     e.preventDefault();
@@ -34,41 +23,17 @@ export default function MainScreen({
     onJoinRoom({ roomId: roomId.trim().toUpperCase(), playerName: playerName.trim() });
   };
 
-  const handleReconnectClick = () => {
-    const token = localStorage.getItem(RECONNECT_TOKEN_KEY);
-    if (token && onReconnect) {
-      onReconnect(token);
-    }
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-900 text-slate-100">
-      <div className="w-full max-w-md glass-panel rounded-2xl p-6 shadow-2xl space-y-6">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#f7f5ff] text-slate-800">
+      <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-xl shadow-violet-100/70 border border-violet-100 space-y-6">
         {/* Title Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center p-3 bg-amber-500/10 text-amber-400 rounded-2xl border border-amber-500/20 mb-2">
+          <div className="inline-flex items-center justify-center p-3 bg-violet-100 text-violet-600 rounded-2xl mb-2">
             <Shield className="w-10 h-10" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-amber-400">Card Bluff</h1>
-          <p className="text-sm text-slate-400">เกมบลัฟการ์ดฮีโร่ - บลัฟ จับโกหก ชิงความเป็นหนึ่ง</p>
+          <h1 className="text-3xl font-bold tracking-tight text-violet-700">Card Bluff</h1>
+          <p className="text-sm text-slate-500">เกมบลัฟการ์ดฮีโร่ · บลัฟ จับโกหก ชิงความเป็นหนึ่ง</p>
         </div>
-
-        {/* Reconnect Banner */}
-        {hasSavedToken && (
-          <div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-amber-200">
-            <div className="flex items-center space-x-2 text-sm">
-              <RefreshCw className="w-4 h-4 animate-spin text-amber-400" />
-              <span>พบเซสชันการเล่นค้างอยู่</span>
-            </div>
-            <button
-              onClick={handleReconnectClick}
-              disabled={isLoading}
-              className="w-full sm:w-auto px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 font-semibold rounded-lg transition-colors text-sm shadow-md"
-            >
-              กลับเข้าสู่เกมเดิม
-            </button>
-          </div>
-        )}
 
         {/* Error Alert */}
         {errorMessage && (
@@ -79,13 +44,13 @@ export default function MainScreen({
         )}
 
         {/* Tab Switcher */}
-        <div className="grid grid-cols-2 gap-1 p-1 bg-slate-950/60 rounded-xl border border-slate-800">
+        <div className="grid grid-cols-2 gap-1 p-1 bg-violet-50 rounded-xl border border-violet-100">
           <button
             onClick={() => setActiveTab('create')}
             className={`py-2.5 text-sm font-semibold rounded-lg transition-all flex items-center justify-center space-x-2 ${
               activeTab === 'create'
-                ? 'bg-amber-500 text-slate-950 shadow'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-violet-500 text-white shadow'
+                : 'text-slate-500 hover:text-violet-700'
             }`}
           >
             <PlusCircle className="w-4 h-4" />
@@ -95,8 +60,8 @@ export default function MainScreen({
             onClick={() => setActiveTab('join')}
             className={`py-2.5 text-sm font-semibold rounded-lg transition-all flex items-center justify-center space-x-2 ${
               activeTab === 'join'
-                ? 'bg-amber-500 text-slate-950 shadow'
-                : 'text-slate-400 hover:text-slate-200'
+                ? 'bg-violet-500 text-white shadow'
+                : 'text-slate-500 hover:text-violet-700'
             }`}
           >
             <LogIn className="w-4 h-4" />
@@ -118,13 +83,13 @@ export default function MainScreen({
                 placeholder="กรอกชื่อผู้เล่นของคุณ"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 text-base"
+                className="w-full px-4 py-3 bg-white border border-violet-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-200 text-base"
               />
             </div>
             <button
               type="submit"
               disabled={isLoading || !playerName.trim()}
-              className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 disabled:opacity-50 text-slate-950 font-bold rounded-xl transition-colors shadow-lg text-base"
+              className="w-full py-3.5 bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white font-bold rounded-xl transition-colors shadow-lg shadow-violet-200 text-base"
             >
               {isLoading ? 'กำลังสร้างห้อง...' : 'สร้างห้อง'}
             </button>
@@ -142,7 +107,7 @@ export default function MainScreen({
                 placeholder="กรอกชื่อผู้เล่นของคุณ"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500 text-base"
+                className="w-full px-4 py-3 bg-white border border-violet-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-200 text-base"
               />
             </div>
             <div>
@@ -156,13 +121,13 @@ export default function MainScreen({
                 placeholder="เช่น ABCDEF"
                 value={roomId}
                 onChange={(e) => setRoomId(e.target.value.toUpperCase())}
-                className="w-full px-4 py-3 bg-slate-950/80 border border-slate-700/80 rounded-xl text-slate-100 placeholder-slate-500 uppercase tracking-widest text-center font-mono focus:outline-none focus:border-amber-500 text-base"
+                className="w-full px-4 py-3 bg-white border border-violet-200 rounded-xl text-slate-800 placeholder-slate-400 uppercase tracking-widest text-center font-mono focus:outline-none focus:ring-2 focus:ring-violet-200 text-base"
               />
             </div>
             <button
               type="submit"
               disabled={isLoading || !playerName.trim() || !roomId.trim()}
-              className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 disabled:opacity-50 text-slate-950 font-bold rounded-xl transition-colors shadow-lg text-base"
+              className="w-full py-3.5 bg-violet-500 hover:bg-violet-600 disabled:opacity-50 text-white font-bold rounded-xl transition-colors shadow-lg shadow-violet-200 text-base"
             >
               {isLoading ? 'กำลังเข้าร่วม...' : 'เข้าร่วมห้อง'}
             </button>

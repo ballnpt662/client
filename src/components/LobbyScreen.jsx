@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
-import { Users, Crown, Copy, Check, Play, LogOut } from 'lucide-react';
+import { Users, Crown, Copy, Check, Play, LogOut, Trash2, Wifi, WifiOff, X } from 'lucide-react';
 
 export default function LobbyScreen({
   roomInfo,
   currentUserId,
   onStartGame,
   onLeaveRoom,
+  onCloseRoom,
+  connectionState,
 }) {
   const [copied, setCopied] = useState(false);
+  const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   const roomId = roomInfo?.roomId || '';
   const players = roomInfo?.players || [];
@@ -18,41 +22,42 @@ export default function LobbyScreen({
 
   const handleCopyCode = () => {
     if (!roomId) return;
-    navigator.clipboard.writeText(roomId);
+    navigator.clipboard?.writeText(roomId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-slate-900 text-slate-100">
-      <div className="w-full max-w-lg glass-panel rounded-2xl p-6 shadow-2xl space-y-6">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-[#f7f5ff] text-slate-800">
+      <div className="w-full max-w-lg bg-white rounded-3xl p-5 sm:p-7 shadow-xl shadow-violet-100/70 space-y-6 border border-violet-100">
         {/* Header & Room Code */}
         <div className="text-center space-y-3">
-          <span className="inline-block px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-semibold rounded-full border border-amber-500/20">
+          <span className="inline-block px-3 py-1 bg-violet-50 text-violet-600 text-xs font-semibold rounded-full border border-violet-100">
             ห้องรอผู้เล่น (Lobby)
           </span>
           <div className="flex items-center justify-center space-x-2">
-            <h2 className="text-3xl font-black tracking-widest font-mono text-amber-400">
+            <h2 className="text-3xl font-black tracking-widest font-mono text-violet-600">
               #{roomId}
             </h2>
             <button
               onClick={handleCopyCode}
-              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors border border-slate-700"
+              className="p-2 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-xl transition-colors border border-violet-100"
+              aria-label="คัดลอกรหัสห้อง"
               title="คัดลอกรหัสห้อง"
             >
               {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
-          <p className="text-xs text-slate-400">แชร์รหัสห้องนี้ให้เพื่อน 3–6 คนเพื่อเริ่มเล่น</p>
+          <p className="text-xs text-slate-500">แชร์รหัสห้องนี้ให้เพื่อน 3–6 คนเพื่อเริ่มเล่น</p>
         </div>
 
         {/* Player Count Bar */}
-        <div className="flex items-center justify-between px-4 py-3 bg-slate-950/60 rounded-xl border border-slate-800">
-          <div className="flex items-center space-x-2 text-sm text-slate-300">
-            <Users className="w-4 h-4 text-amber-400" />
+        <div className="flex items-center justify-between px-4 py-3 bg-violet-50 rounded-2xl border border-violet-100">
+          <div className="flex items-center space-x-2 text-sm text-slate-600">
+            <Users className="w-4 h-4 text-violet-500" />
             <span>รายชื่อผู้เล่นในห้อง</span>
           </div>
-          <span className="text-xs font-bold px-2.5 py-1 bg-amber-500/20 text-amber-300 rounded-full border border-amber-500/30">
+          <span className="text-xs font-bold px-2.5 py-1 bg-white text-violet-600 rounded-full border border-violet-200">
             {playerLength} / 6 คน
           </span>
         </div>
@@ -68,28 +73,34 @@ export default function LobbyScreen({
                 key={player.id || idx}
                 className={`flex items-center justify-between p-3.5 rounded-xl border transition-all ${
                   isMe
-                    ? 'bg-amber-500/10 border-amber-500/40 text-amber-100'
-                    : 'bg-slate-950/40 border-slate-800/80 text-slate-200'
+                    ? 'bg-violet-50 border-violet-200 text-slate-800'
+                    : 'bg-white border-slate-100 text-slate-700'
                 }`}
               >
                 <div className="flex items-center space-x-3">
-                  <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-amber-400 text-sm">
+                  <div className="w-9 h-9 rounded-full bg-[#f0edff] border border-violet-100 flex items-center justify-center font-bold text-violet-600 text-sm">
                     {player.name ? player.name.charAt(0).toUpperCase() : '?'}
                   </div>
                   <div>
                     <div className="flex items-center space-x-2">
                       <span className="font-medium text-sm">{player.name}</span>
-                      {isMe && <span className="text-xs text-amber-400">(คุณ)</span>}
+                      {isMe && <span className="text-xs text-violet-600">(คุณ)</span>}
                     </div>
                   </div>
                 </div>
 
+                <div className="flex items-center gap-2">
+                  <span className={`flex items-center gap-1 text-xs ${player.isConnected ? 'text-emerald-600' : 'text-rose-500'}`}>
+                    {player.isConnected ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+                    {player.isConnected ? 'ออนไลน์' : 'หลุดชั่วคราว'}
+                  </span>
                 {isPlayerHost && (
-                  <span className="flex items-center space-x-1 px-2.5 py-1 bg-amber-500/20 text-amber-300 text-xs font-semibold rounded-full border border-amber-500/40">
-                    <Crown className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="flex items-center space-x-1 px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-semibold rounded-full border border-amber-200">
+                    <Crown className="w-3.5 h-3.5 text-amber-500" />
                     <span>เจ้าของห้อง</span>
                   </span>
                 )}
+                </div>
               </div>
             );
           })}
@@ -101,8 +112,8 @@ export default function LobbyScreen({
             <div className="space-y-2">
               <button
                 onClick={onStartGame}
-                disabled={!canStart}
-                className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold rounded-xl transition-all shadow-lg flex items-center justify-center space-x-2 text-base"
+                disabled={!canStart || connectionState !== 'CONNECTED'}
+                className="w-full py-3.5 bg-violet-500 hover:bg-violet-600 active:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-2xl transition-all shadow-lg shadow-violet-200 flex items-center justify-center space-x-2 text-base"
               >
                 <Play className="w-5 h-5 fill-current" />
                 <span>เริ่มเกม (ต้องมี 3-6 คน)</span>
@@ -123,13 +134,26 @@ export default function LobbyScreen({
 
           <button
             onClick={onLeaveRoom}
-            className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold rounded-xl border border-slate-700 transition-colors flex items-center justify-center space-x-2 text-sm"
+            className="w-full py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold rounded-2xl transition-colors flex items-center justify-center space-x-2 text-sm"
           >
             <LogOut className="w-4 h-4" />
             <span>ออกจากห้อง</span>
           </button>
+          {isHost && onCloseRoom && (
+            <button onClick={() => setShowCloseConfirm(true)} className="w-full py-2.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm font-medium">
+              <Trash2 className="w-4 h-4" /> ยุบห้อง
+            </button>
+          )}
         </div>
       </div>
+      {showCloseConfirm && (
+        <div className="fixed inset-0 z-50 bg-slate-900/30 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="close-room-title">
+          <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl">
+            <div className="flex justify-between items-start gap-4"><div><h3 id="close-room-title" className="text-lg font-bold">ยืนยันยุบห้อง?</h3><p className="mt-2 text-sm text-slate-500">ผู้เล่นทุกคนจะถูกนำออกจากห้องและไม่สามารถกลับเข้าห้องนี้ได้</p></div><button onClick={() => setShowCloseConfirm(false)} aria-label="ปิด"><X className="w-5 h-5" /></button></div>
+            <div className="grid grid-cols-2 gap-3 mt-6"><button onClick={() => setShowCloseConfirm(false)} className="py-3 rounded-xl bg-slate-100 font-semibold">ยกเลิก</button><button disabled={isClosing} onClick={async () => { setIsClosing(true); try { await onCloseRoom(); } finally { setIsClosing(false); setShowCloseConfirm(false); } }} className="py-3 rounded-xl bg-rose-500 text-white font-semibold disabled:opacity-50">{isClosing ? 'กำลังยุบ...' : 'ยืนยันยุบห้อง'}</button></div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

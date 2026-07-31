@@ -124,5 +124,29 @@ export function translateError(errorStr) {
   if (errorStr.includes('INVALID_PHASE')) {
     return 'ไม่สามารถทำแอ็กชันนี้ได้ในเฟสปัจจุบัน';
   }
+  if (errorStr.includes('ROOM_NOT_FOUND')) {
+    return 'ห้องนี้สิ้นสุดแล้วหรือเซิร์ฟเวอร์เริ่มทำงานใหม่';
+  }
+  if (errorStr.includes('ROOM_CLOSED') || errorStr.includes('HOST_CLOSED_ROOM')) {
+    return 'หัวหน้าห้องได้ยุบห้องแล้ว';
+  }
+  if (errorStr.includes('INVALID_RECONNECT_TOKEN') || errorStr.includes('SESSION_EXPIRED')) {
+    return 'เซสชันหมดอายุ กรุณาเข้าห้องใหม่';
+  }
+  if (errorStr.includes('PLAYER_NOT_FOUND')) {
+    return 'ไม่พบข้อมูลผู้เล่นในห้องนี้';
+  }
+  if (errorStr.includes('ONLY_HOST_CAN')) {
+    return 'เฉพาะหัวหน้าห้องเท่านั้นที่ทำได้';
+  }
+  if (errorStr.includes('NOT_IN_ROOM')) {
+    return 'คุณไม่ได้อยู่ในห้องนี้';
+  }
+  if (errorStr.includes('ROOM_FULL')) {
+    return 'ห้องเต็มแล้ว (สูงสุด 6 คน)';
+  }
+  if (errorStr.includes('GAME_ALREADY_STARTED')) {
+    return 'เกมเริ่มไปแล้ว ไม่สามารถเข้าร่วมได้';
+  }
   return errorStr;
 }

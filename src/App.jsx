@@ -3,10 +3,12 @@ import { useSocketGame } from './hooks/useSocketGame';
 import MainScreen from './components/MainScreen';
 import LobbyScreen from './components/LobbyScreen';
 import GameDashboard from './components/GameDashboard';
+import ConnectionOverlay from './components/ConnectionOverlay';
 import { soundManager } from './utils/soundManager';
 
 export default function App() {
   const {
+    connectionState,
     isConnected,
     roomInfo,
     publicState,
@@ -19,6 +21,8 @@ export default function App() {
     joinRoom,
     reconnectRoom,
     startGame,
+    closeRoom,
+    terminateGame,
     sendAction,
     sendChallenge,
     sendCounter,
@@ -30,30 +34,26 @@ export default function App() {
 
   const prevPhaseRef = useRef(null);
   const prevTurnRef = useRef(null);
+  const prevEventCountRef = useRef(0);
 
   const currentUserId = roomInfo?.playerId || '';
   const inRoom = Boolean(roomInfo?.roomId);
   const phase = publicState?.phase;
   const currentTurnPlayerId = publicState?.currentTurnPlayerId;
   const isGameStarted = Boolean(publicState && phase !== undefined);
+  const isHost = Boolean(roomInfo?.playerId && roomInfo?.playerId === roomInfo?.hostPlayerId);
 
   // Play sounds on phase/turn changes
   useEffect(() => {
     if (!phase) return;
     const prevPhase = prevPhaseRef.current;
-    const prevTurn = prevTurnRef.current;
 
-    // New turn start
-    if (currentTurnPlayerId && currentTurnPlayerId !== prevTurn && phase === 'WAITING_FOR_ACTION') {
+    if (currentTurnPlayerId && currentTurnPlayerId !== prevTurnRef.current && phase === 'WAITING_FOR_ACTION') {
       soundManager.playTurnStart();
     }
-
-    // Challenge phase started
     if (phase === 'CHALLENGE_ACTION' && prevPhase !== 'CHALLENGE_ACTION') {
       soundManager.playChallenge();
     }
-
-    // Game over
     if (phase === 'GAME_OVER' && prevPhase !== 'GAME_OVER') {
       if (publicState?.winnerPlayerId === currentUserId) {
         soundManager.playVictory();
@@ -66,50 +66,85 @@ export default function App() {
     prevTurnRef.current = currentTurnPlayerId;
   }, [phase, currentTurnPlayerId, publicState?.winnerPlayerId, currentUserId]);
 
-  // Play sound when cards are revealed (listen to eventLog changes)
-  const prevEventCountRef = useRef(0);
+  // Sound on card reveal / elimination events
   useEffect(() => {
     const log = publicState?.eventLog || [];
     if (log.length > prevEventCountRef.current) {
       const newEvents = log.slice(prevEventCountRef.current);
       newEvents.forEach((ev) => {
-        if (ev.type === 'REVEAL' || ev.type === 'ELIMINATION') {
-          soundManager.playRevealCard();
-        }
-        if (ev.type === 'ELIMINATION') {
-          setTimeout(() => soundManager.playEliminated(), 300);
-        }
+        if (ev.type === 'REVEAL' || ev.type === 'ELIMINATION') soundManager.playRevealCard();
+        if (ev.type === 'ELIMINATION') setTimeout(() => soundManager.playEliminated(), 300);
       });
       prevEventCountRef.current = log.length;
     }
   }, [publicState?.eventLog]);
 
+  // Reset event counter when game is reset
+  useEffect(() => {
+    if (!publicState) prevEventCountRef.current = 0;
+  }, [publicState]);
+
+  // ── Full-screen overlays (CONNECTING, RECONNECTING, FAILED) ─────────────────
+  if (connectionState === 'CONNECTING' || connectionState === 'RECONNECTING') {
+    return (
+      <ConnectionOverlay
+        state={connectionState}
+        onReturnHome={() => {
+          leaveRoom();
+        }}
+      />
+    );
+  }
+
+  if (connectionState === 'FAILED') {
+    return (
+      <ConnectionOverlay
+        state="FAILED"
+        onRetry={() => window.location.reload()}
+        onReturnHome={() => {
+          leaveRoom();
+          window.location.reload();
+        }}
+      />
+    );
+  }
+
+  // ── Normal screens ───────────────────────────────────────────────────────────
   if (!inRoom) {
     return (
-      <MainScreen
-        onCreateRoom={createRoom}
-        onJoinRoom={joinRoom}
-        onReconnect={reconnectRoom}
-        errorMessage={error}
-        isLoading={isLoading}
-        isConnected={isConnected}
-      />
+      <>
+        <ConnectionOverlay state={connectionState} />
+        <MainScreen
+          onCreateRoom={createRoom}
+          onJoinRoom={joinRoom}
+          onReconnect={reconnectRoom}
+          errorMessage={error}
+          isLoading={isLoading}
+          isConnected={isConnected}
+        />
+      </>
     );
   }
 
   if (!isGameStarted) {
     return (
-      <LobbyScreen
-        roomInfo={roomInfo}
-        currentUserId={currentUserId}
-        onStartGame={startGame}
-        onLeaveRoom={leaveRoom}
-      />
+      <>
+        <ConnectionOverlay state={connectionState} />
+        <LobbyScreen
+          roomInfo={roomInfo}
+          currentUserId={currentUserId}
+          onStartGame={startGame}
+          onLeaveRoom={leaveRoom}
+          onCloseRoom={isHost ? closeRoom : null}
+          isHost={isHost}
+          connectionState={connectionState}
+        />
+      </>
     );
   }
 
   return (
-    <GameDashboard
+    <><ConnectionOverlay state={connectionState} /><GameDashboard
       publicState={publicState}
       myCards={myCards}
       currentUserId={currentUserId}
@@ -122,6 +157,10 @@ export default function App() {
       onRevealCard={revealCard}
       onDismissSeer={dismissSeerResult}
       onLeaveRoom={leaveRoom}
-    />
+      onTerminateGame={isHost ? terminateGame : null}
+      isHost={isHost}
+      hostPlayerId={roomInfo?.hostPlayerId}
+      connectionState={connectionState}
+    /></>
   );
 }

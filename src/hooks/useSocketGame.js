@@ -1,15 +1,28 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { translateError } from '../utils/textHelpers';
+import { saveSession, loadSession, clearSession } from '../utils/sessionManager';
 
-const RECONNECT_TOKEN_KEY = 'card_bluff_reconnect_token';
 const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
+
+/**
+ * Connection state machine:
+ *   CONNECTING   — socket is being created / first connection attempt
+ *   RECONNECTING — initial page load: has session, waiting for room:reconnect response
+ *   CONNECTED    — socket is online and ready
+ *   DISCONNECTED — mid-session drop; socket.io will auto-retry
+ *   FAILED       — all reconnect attempts exhausted
+ */
 
 export function useSocketGame() {
   const socketRef = useRef(null);
   const seerTimerRef = useRef(null);
+  // Prevents re-triggering the initial page-load reconnect after the first connect
+  const hasInitReconnectRef = useRef(false);
+  // Keeps a live reference to roomInfo for use inside socket event closures
+  const roomInfoRef = useRef(null);
 
-  const [isConnected, setIsConnected] = useState(false);
+  const [connectionState, setConnectionState] = useState('CONNECTING');
   const [roomInfo, setRoomInfo] = useState(null);
   const [publicState, setPublicState] = useState(null);
   const [myCards, setMyCards] = useState([]);
@@ -18,13 +31,18 @@ export function useSocketGame() {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Keep roomInfoRef in sync
+  useEffect(() => {
+    roomInfoRef.current = roomInfo;
+  }, [roomInfo]);
+
   const generateActionId = useCallback(() => {
     return `act-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   }, []);
 
   const showError = useCallback((msg) => {
     setError(translateError(msg));
-    setTimeout(() => setError(null), 4000);
+    setTimeout(() => setError(null), 5000);
   }, []);
 
   useEffect(() => {
@@ -33,20 +51,262 @@ export function useSocketGame() {
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: 10,
-      reconnectionDelay: 1000,
+      reconnectionDelay: 1500,
     });
     socketRef.current = socket;
 
+    // ── Connection lifecycle ──────────────────────────────────────────────────
     socket.on('connect', () => {
-      setIsConnected(true);
-      const savedToken = localStorage.getItem(RECONNECT_TOKEN_KEY);
-      if (savedToken && !roomInfo) {
-        socket.emit('room:reconnect', { reconnectToken: savedToken }, (res) => {
+      setConnectionState('CONNECTED');
+
+      if (!hasInitReconnectRef.current) {
+        // First connect after page load — try to restore session
+        hasInitReconnectRef.current = true;
+        const session = loadSession();
+        if (session) {
+          setConnectionState('RECONNECTING');
+          socket.emit('room:reconnect', session, (res) => {
+            if (res?.success) {
+              saveSession({
+                roomId: res.roomId,
+                playerId: res.playerId,
+                reconnectToken: session.reconnectToken,
+              });
+              setRoomInfo({
+                roomId: res.roomId,
+                playerId: res.playerId,
+                reconnectToken: session.reconnectToken,
+                players: res.room?.players || [],
+                hostPlayerId: res.room?.hostPlayerId,
+              });
+              if (res.state) {
+                setPublicState(res.state);
+                setTimerRemaining(res.state.phaseTimerRemainingSeconds || 0);
+              }
+              setConnectionState('CONNECTED');
+            } else {
+              // Room gone or token invalid — clean up and go to main screen
+              clearSession();
+              setRoomInfo(null);
+              setPublicState(null);
+              setMyCards([]);
+              setConnectionState('CONNECTED');
+              // Show error only for unexpected failures (not stale session)
+              if (
+                res?.error &&
+                !res.error.includes('INVALID_RECONNECT_TOKEN') &&
+                !res.error.includes('ROOM_NOT_FOUND')
+              ) {
+                showError(res?.error);
+              }
+            }
+          });
+        }
+      } else if (roomInfoRef.current) {
+        // Mid-session reconnect (socket dropped and came back) —
+        // re-join the socket room on server so events flow again
+        const session = loadSession();
+        if (session) {
+          setConnectionState('RECONNECTING');
+          socket.emit('room:reconnect', session, (res) => {
+            if (res?.success) {
+              setRoomInfo({
+                roomId: res.roomId,
+                playerId: res.playerId,
+                reconnectToken: session.reconnectToken,
+                players: res.room?.players || [],
+                hostPlayerId: res.room?.hostPlayerId,
+              });
+              setPublicState(res.state || null);
+              setTimerRemaining(res.state?.phaseTimerRemainingSeconds || 0);
+              setConnectionState('CONNECTED');
+            } else {
+              // Room or session gone while we were disconnected
+              clearSession();
+              setRoomInfo(null);
+              setPublicState(null);
+              setMyCards([]);
+              setConnectionState('CONNECTED');
+              showError(res?.error || 'SESSION_EXPIRED');
+            }
+          });
+        }
+      }
+    });
+
+    socket.on('disconnect', (reason) => {
+      setConnectionState('DISCONNECTED');
+    });
+
+    socket.on('connect_error', () => {
+      setConnectionState('DISCONNECTED');
+    });
+
+    socket.io.on('reconnect', () => {
+      // socket 'connect' event will fire right after — let it handle state
+    });
+
+    socket.io.on('reconnect_attempt', () => {
+      setConnectionState('RECONNECTING');
+    });
+
+    socket.io.on('reconnect_failed', () => {
+      setConnectionState('FAILED');
+    });
+
+    // ── Game state ────────────────────────────────────────────────────────────
+    socket.on('game:publicState', ({ state }) => {
+      setPublicState(state);
+      if (state?.phaseTimerRemainingSeconds !== undefined) {
+        setTimerRemaining(state.phaseTimerRemainingSeconds);
+      }
+    });
+
+    socket.on('game:privateState', ({ myCards: cards }) => {
+      setMyCards(cards || []);
+    });
+
+    socket.on('game:timerTick', ({ secondsRemaining }) => {
+      setTimerRemaining(secondsRemaining);
+    });
+
+    socket.on('game:seerResult', (result) => {
+      setSeerResult(result);
+      if (seerTimerRef.current) clearTimeout(seerTimerRef.current);
+      seerTimerRef.current = setTimeout(() => setSeerResult(null), 5000);
+    });
+
+    // ── Room events ───────────────────────────────────────────────────────────
+    socket.on('room:updated', (updatedRoom) => {
+      if (!updatedRoom) return;
+      setRoomInfo((prev) =>
+        prev
+          ? {
+              ...prev,
+              players: updatedRoom.players || [],
+              hostPlayerId: updatedRoom.hostPlayerId,
+            }
+          : prev
+      );
+    });
+
+    // Host closed the lobby room — everyone goes home
+    socket.on('room:closed', ({ message }) => {
+      clearSession();
+      setRoomInfo(null);
+      setPublicState(null);
+      setMyCards([]);
+      setSeerResult(null);
+      if (seerTimerRef.current) clearTimeout(seerTimerRef.current);
+      if (message) showError(message);
+    });
+
+    // Host terminated the game — everyone goes back to lobby
+    // Server will also emit room:updated so roomInfo stays updated
+    socket.on('game:terminated', () => {
+      setPublicState(null);
+      setMyCards([]);
+      setSeerResult(null);
+      if (seerTimerRef.current) clearTimeout(seerTimerRef.current);
+    });
+
+    // Kept for backward compat (no-op; handled via room:updated)
+    socket.on('room:playerJoined', () => {});
+    socket.on('room:playerLeft', () => {});
+
+    return () => {
+      if (seerTimerRef.current) clearTimeout(seerTimerRef.current);
+      socket.off(); // Remove all listeners before disconnect
+      socket.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Public actions ──────────────────────────────────────────────────────────
+  const createRoom = useCallback(
+    async ({ playerName }) => {
+      if (!socketRef.current?.connected) {
+        showError('ยังไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณารอสักครู่');
+        return Promise.reject(new Error('Not connected'));
+      }
+      setIsLoading(true);
+      return new Promise((resolve, reject) => {
+        socketRef.current.timeout(10000).emit('room:create', { playerName }, (err, res) => {
+          setIsLoading(false);
+          if (err) {
+            showError('เซิร์ฟเวอร์ไม่ตอบกลับ กรุณาลองใหม่');
+            reject(err);
+            return;
+          }
           if (res?.success) {
+            saveSession({ roomId: res.roomId, playerId: res.playerId, reconnectToken: res.reconnectToken });
             setRoomInfo({
               roomId: res.roomId,
               playerId: res.playerId,
-              reconnectToken: savedToken,
+              reconnectToken: res.reconnectToken,
+              players: res.room?.players || [],
+              hostPlayerId: res.room?.hostPlayerId,
+            });
+            resolve(res);
+          } else {
+            showError(res?.error || 'ไม่สามารถสร้างห้องได้');
+            reject(new Error(res?.error));
+          }
+        });
+      });
+    },
+    [showError]
+  );
+
+  const joinRoom = useCallback(
+    async ({ roomId, playerName }) => {
+      if (!socketRef.current?.connected) {
+        showError('ยังไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณารอสักครู่');
+        return Promise.reject(new Error('Not connected'));
+      }
+      setIsLoading(true);
+      return new Promise((resolve, reject) => {
+        socketRef.current.timeout(10000).emit('room:join', { roomId, playerName }, (err, res) => {
+          setIsLoading(false);
+          if (err) {
+            showError('เซิร์ฟเวอร์ไม่ตอบกลับ กรุณาลองใหม่');
+            reject(err);
+            return;
+          }
+          if (res?.success) {
+            saveSession({ roomId: res.roomId, playerId: res.playerId, reconnectToken: res.reconnectToken });
+            setRoomInfo({
+              roomId: res.roomId,
+              playerId: res.playerId,
+              reconnectToken: res.reconnectToken,
+              players: res.room?.players || [],
+              hostPlayerId: res.room?.hostPlayerId,
+            });
+            resolve(res);
+          } else {
+            showError(res?.error || 'ไม่สามารถเข้าร่วมห้องได้');
+            reject(new Error(res?.error));
+          }
+        });
+      });
+    },
+    [showError]
+  );
+
+  const reconnectRoom = useCallback(
+    async (reconnectToken) => {
+      setIsLoading(true);
+      return new Promise((resolve) => {
+        const session = loadSession();
+        const payload = session || { reconnectToken };
+        socketRef.current?.emit('room:reconnect', payload, (res) => {
+          setIsLoading(false);
+          if (res?.success) {
+            saveSession({ roomId: res.roomId, playerId: res.playerId, reconnectToken });
+            setRoomInfo({
+              roomId: res.roomId,
+              playerId: res.playerId,
+              reconnectToken,
               players: res.room?.players || [],
               hostPlayerId: res.room?.hostPlayerId,
             });
@@ -54,246 +314,145 @@ export function useSocketGame() {
               setPublicState(res.state);
               setTimerRemaining(res.state.phaseTimerRemainingSeconds || 0);
             }
+            resolve(true);
           } else {
-            localStorage.removeItem(RECONNECT_TOKEN_KEY);
+            clearSession();
+            showError(res?.error || 'ไม่สามารถเชื่อมต่อเซสชันเดิมได้');
+            resolve(false);
           }
         });
-      }
-    });
-
-    socket.on('disconnect', () => {
-      setIsConnected(false);
-    });
-
-    socket.on('game:publicState', ({ roomId, state }) => {
-      setPublicState(state);
-      if (state?.phaseTimerRemainingSeconds !== undefined) {
-        setTimerRemaining(state.phaseTimerRemainingSeconds);
-      }
-    });
-
-    socket.on('game:privateState', ({ playerId, myCards: cards }) => {
-      setMyCards(cards || []);
-    });
-
-    socket.on('game:timerTick', ({ roomId, secondsRemaining }) => {
-      setTimerRemaining(secondsRemaining);
-    });
-
-    socket.on('game:seerResult', (result) => {
-      setSeerResult(result);
-      if (seerTimerRef.current) clearTimeout(seerTimerRef.current);
-      
-      seerTimerRef.current = setTimeout(() => {
-        setSeerResult(null);
-      }, 5000);
-    });
-
-    socket.on('room:updated', (updatedRoom) => {
-      if (updatedRoom) {
-        setRoomInfo((prev) =>
-          prev
-            ? {
-                ...prev,
-                players: updatedRoom.players || [],
-                hostPlayerId: updatedRoom.hostPlayerId,
-              }
-            : prev
-        );
-      }
-    });
-
-    socket.on('room:playerJoined', ({ playerId, playerName }) => {
-      // Handled via room:updated
-    });
-
-    socket.on('room:playerLeft', ({ playerId }) => {
-      // Handled via room:updated
-    });
-
-    return () => {
-      if (seerTimerRef.current) clearTimeout(seerTimerRef.current);
-      socket.disconnect();
-    };
-  }, []);
-
-  const createRoom = useCallback(async ({ playerName }) => {
-    if (!socketRef.current?.connected) {
-      showError('ยังไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณารอสักครู่');
-      return Promise.reject(new Error('Not connected'));
-    }
-    setIsLoading(true);
-    return new Promise((resolve, reject) => {
-      socketRef.current.timeout(10000).emit('room:create', { playerName }, (err, res) => {
-        setIsLoading(false);
-        if (err) {
-          showError('เซิร์ฟเวอร์ไม่ตอบกลับ กรุณาลองใหม่');
-          reject(err);
-          return;
-        }
-        if (res?.success) {
-          localStorage.setItem(RECONNECT_TOKEN_KEY, res.reconnectToken);
-          setRoomInfo({
-            roomId: res.roomId,
-            playerId: res.playerId,
-            reconnectToken: res.reconnectToken,
-            players: res.room?.players || [],
-            hostPlayerId: res.room?.hostPlayerId,
-          });
-          resolve(res);
-        } else {
-          showError(res?.error || 'ไม่สามารถสร้างห้องได้');
-          reject(new Error(res?.error));
-        }
       });
-    });
-  }, [showError]);
-
-  const joinRoom = useCallback(async ({ roomId, playerName }) => {
-    if (!socketRef.current?.connected) {
-      showError('ยังไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณารอสักครู่');
-      return Promise.reject(new Error('Not connected'));
-    }
-    setIsLoading(true);
-    return new Promise((resolve, reject) => {
-      socketRef.current.timeout(10000).emit('room:join', { roomId, playerName }, (err, res) => {
-        setIsLoading(false);
-        if (err) {
-          showError('เซิร์ฟเวอร์ไม่ตอบกลับ กรุณาลองใหม่');
-          reject(err);
-          return;
-        }
-        if (res?.success) {
-          localStorage.setItem(RECONNECT_TOKEN_KEY, res.reconnectToken);
-          setRoomInfo({
-            roomId: res.roomId,
-            playerId: res.playerId,
-            reconnectToken: res.reconnectToken,
-            players: res.room?.players || [],
-            hostPlayerId: res.room?.hostPlayerId,
-          });
-          resolve(res);
-        } else {
-          showError(res?.error || 'ไม่สามารถเข้าร่วมห้องได้');
-          reject(new Error(res?.error));
-        }
-      });
-    });
-  }, [showError]);
-
-  const reconnectRoom = useCallback(async (reconnectToken) => {
-    setIsLoading(true);
-    return new Promise((resolve) => {
-      socketRef.current?.emit('room:reconnect', { reconnectToken }, (res) => {
-        setIsLoading(false);
-        if (res?.success) {
-          localStorage.setItem(RECONNECT_TOKEN_KEY, reconnectToken);
-          setRoomInfo({
-            roomId: res.roomId,
-            playerId: res.playerId,
-            reconnectToken: reconnectToken,
-            players: res.room?.players || [],
-            hostPlayerId: res.room?.hostPlayerId,
-          });
-          if (res.state) {
-            setPublicState(res.state);
-            setTimerRemaining(res.state.phaseTimerRemainingSeconds || 0);
-          }
-          resolve(true);
-        } else {
-          localStorage.removeItem(RECONNECT_TOKEN_KEY);
-          showError(res?.error || 'ไม่สามารถเชื่อมต่อเซสชันเดิมได้');
-          resolve(false);
-        }
-      });
-    });
-  }, [showError]);
+    },
+    [showError]
+  );
 
   const startGame = useCallback(async () => {
-    if (!roomInfo?.roomId) return;
-    socketRef.current?.emit('room:start', { roomId: roomInfo.roomId }, (res) => {
-      if (!res?.success) {
-        showError(res?.error || 'ไม่สามารถเริ่มเกมได้');
-      }
+    if (!roomInfoRef.current?.roomId) return;
+    socketRef.current?.emit('room:start', { roomId: roomInfoRef.current.roomId }, (res) => {
+      if (!res?.success) showError(res?.error || 'ไม่สามารถเริ่มเกมได้');
     });
-  }, [roomInfo?.roomId, showError]);
+  }, [showError]);
 
-  const sendAction = useCallback(async ({ actionType, targetPlayerId }) => {
-    if (!roomInfo?.roomId) return;
-    const actionId = generateActionId();
-    socketRef.current?.emit(
-      'game:action',
-      { roomId: roomInfo.roomId, actionId, actionType, targetPlayerId },
-      (res) => {
-        if (!res?.success && !res?.duplicate) {
-          showError(res?.error || 'ทำแอ็กชันไม่สำเร็จ');
+  const closeRoom = useCallback(async () => {
+    const info = roomInfoRef.current;
+    if (!info?.roomId || !info?.reconnectToken) return;
+    return new Promise((resolve, reject) => {
+      socketRef.current?.timeout(10000).emit(
+        'room:close',
+        { roomId: info.roomId, reconnectToken: info.reconnectToken },
+        (err, res) => {
+          if (err || !res?.success) {
+            showError(res?.error || 'ไม่สามารถยุบห้องได้');
+            reject(err || new Error(res?.error));
+            return;
+          }
+          // room:closed event will handle cleanup
+          resolve(res);
         }
-      }
-    );
-  }, [roomInfo?.roomId, generateActionId, showError]);
+      );
+    });
+  }, [showError]);
+
+  const terminateGame = useCallback(async () => {
+    const info = roomInfoRef.current;
+    if (!info?.roomId || !info?.reconnectToken) return;
+    return new Promise((resolve, reject) => {
+      socketRef.current?.timeout(10000).emit(
+        'game:terminate',
+        { roomId: info.roomId, reconnectToken: info.reconnectToken },
+        (err, res) => {
+          if (err || !res?.success) {
+            showError(res?.error || 'ไม่สามารถยุติเกมได้');
+            reject(err || new Error(res?.error));
+            return;
+          }
+          // game:terminated + room:updated events handle state update
+          resolve(res);
+        }
+      );
+    });
+  }, [showError]);
+
+  const sendAction = useCallback(
+    async ({ actionType, targetPlayerId }) => {
+      if (!roomInfoRef.current?.roomId) return;
+      const actionId = generateActionId();
+      socketRef.current?.emit(
+        'game:action',
+        { roomId: roomInfoRef.current.roomId, actionId, actionType, targetPlayerId },
+        (res) => {
+          if (!res?.success && !res?.duplicate) showError(res?.error || 'ทำแอ็กชันไม่สำเร็จ');
+        }
+      );
+    },
+    [generateActionId, showError]
+  );
 
   const sendChallenge = useCallback(async () => {
-    if (!roomInfo?.roomId) return;
+    if (!roomInfoRef.current?.roomId) return;
     const actionId = generateActionId();
     socketRef.current?.emit(
       'game:challenge',
-      { roomId: roomInfo.roomId, actionId },
+      { roomId: roomInfoRef.current.roomId, actionId },
       (res) => {
-        if (!res?.success && !res?.duplicate) {
-          showError(res?.error || 'ไม่สามารถจับโกหกได้');
-        }
+        if (!res?.success && !res?.duplicate) showError(res?.error || 'ไม่สามารถจับโกหกได้');
       }
     );
-  }, [roomInfo?.roomId, generateActionId, showError]);
+  }, [generateActionId, showError]);
 
-  const sendCounter = useCallback(async ({ counterRole }) => {
-    if (!roomInfo?.roomId) return;
-    const actionId = generateActionId();
-    socketRef.current?.emit(
-      'game:counter',
-      { roomId: roomInfo.roomId, actionId, counterRole },
-      (res) => {
-        if (!res?.success && !res?.duplicate) {
-          showError(res?.error || 'ไม่สามารถป้องกันได้');
+  const sendCounter = useCallback(
+    async ({ counterRole }) => {
+      if (!roomInfoRef.current?.roomId) return;
+      const actionId = generateActionId();
+      socketRef.current?.emit(
+        'game:counter',
+        { roomId: roomInfoRef.current.roomId, actionId, counterRole },
+        (res) => {
+          if (!res?.success && !res?.duplicate) showError(res?.error || 'ไม่สามารถป้องกันได้');
         }
-      }
-    );
-  }, [roomInfo?.roomId, generateActionId, showError]);
+      );
+    },
+    [generateActionId, showError]
+  );
 
   const sendPass = useCallback(async () => {
-    if (!roomInfo?.roomId) return;
+    if (!roomInfoRef.current?.roomId) return;
     const actionId = generateActionId();
     socketRef.current?.emit(
       'game:pass',
-      { roomId: roomInfo.roomId, actionId },
+      { roomId: roomInfoRef.current.roomId, actionId },
       (res) => {
-        if (!res?.success && !res?.duplicate) {
-          showError(res?.error || 'ไม่สามารถผ่านได้');
-        }
+        if (!res?.success && !res?.duplicate) showError(res?.error || 'ไม่สามารถผ่านได้');
       }
     );
-  }, [roomInfo?.roomId, generateActionId, showError]);
+  }, [generateActionId, showError]);
 
-  const revealCard = useCallback(async (cardIndex) => {
-    if (!roomInfo?.roomId) return;
-    const actionId = generateActionId();
-    socketRef.current?.emit(
-      'game:revealCard',
-      { roomId: roomInfo.roomId, actionId, cardIndex },
-      (res) => {
-        if (!res?.success && !res?.duplicate) {
-          showError(res?.error || 'ไม่สามารถเปิดการ์ดได้');
+  const revealCard = useCallback(
+    async (cardIndex) => {
+      if (!roomInfoRef.current?.roomId) return;
+      const actionId = generateActionId();
+      socketRef.current?.emit(
+        'game:revealCard',
+        { roomId: roomInfoRef.current.roomId, actionId, cardIndex },
+        (res) => {
+          if (!res?.success && !res?.duplicate) showError(res?.error || 'ไม่สามารถเปิดการ์ดได้');
         }
-      }
-    );
-  }, [roomInfo?.roomId, generateActionId, showError]);
+      );
+    },
+    [generateActionId, showError]
+  );
 
   const leaveRoom = useCallback(() => {
-    localStorage.removeItem(RECONNECT_TOKEN_KEY);
+    const roomId = roomInfoRef.current?.roomId;
+    if (roomId && socketRef.current?.connected) {
+      socketRef.current.emit('room:leave', { roomId });
+    }
+    clearSession();
     setRoomInfo(null);
     setPublicState(null);
     setMyCards([]);
     setSeerResult(null);
+    if (seerTimerRef.current) clearTimeout(seerTimerRef.current);
   }, []);
 
   const dismissSeerResult = useCallback(() => {
@@ -302,7 +461,8 @@ export function useSocketGame() {
   }, []);
 
   return {
-    isConnected,
+    connectionState,
+    isConnected: connectionState === 'CONNECTED',
     roomInfo,
     publicState,
     myCards,
@@ -314,6 +474,8 @@ export function useSocketGame() {
     joinRoom,
     reconnectRoom,
     startGame,
+    closeRoom,
+    terminateGame,
     sendAction,
     sendChallenge,
     sendCounter,
