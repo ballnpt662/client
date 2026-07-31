@@ -108,6 +108,35 @@
 .tower-card select option{color:#302d43;background:#fff}
 .tower-card input[type="range"]{accent-color:#6d4ee8;opacity:1}
 .tower-card input[type="checkbox"]{accent-color:#6d4ee8}
+
+/* Room settings: keep controls readable at browser zoom and narrow viewports. */
+.fixed.bottom-4.right-4>.tower-card{
+  width:min(24rem,calc(100vw - 2rem));
+  max-width:calc(100vw - 2rem);
+  max-height:min(46rem,calc(100vh - 7rem));
+  overflow-x:hidden;
+  overflow-y:auto;
+  color:#302d43;
+}
+.fixed.bottom-4.right-4>.tower-card h2{line-height:1.25;overflow-wrap:anywhere}
+.fixed.bottom-4.right-4>.tower-card label{display:block;line-height:1.45;overflow-wrap:anywhere}
+.fixed.bottom-4.right-4>.tower-card select{
+  min-height:3.25rem;
+  padding-right:2.5rem;
+  font-size:1rem;
+  line-height:1.35;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.fixed.bottom-4.right-4>.tower-card input[type="number"]{min-height:3.25rem;font-size:1rem}
+.fixed.bottom-4.right-4>.tower-card .grid-cols-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.fixed.bottom-4.right-4>.tower-card label.flex{display:flex;align-items:center;gap:.75rem}
+.fixed.bottom-4.right-4>.tower-card label.flex input{flex:0 0 auto;width:1.15rem;height:1.15rem}
+@media(max-width:420px){
+  .fixed.bottom-4.right-4{right:.75rem;bottom:.75rem}
+  .fixed.bottom-4.right-4>.tower-card{right:0;width:calc(100vw - 1.5rem);max-width:calc(100vw - 1.5rem);padding:1rem}
+  .fixed.bottom-4.right-4>.tower-card .grid-cols-2{grid-template-columns:1fr}
+}
 .game-art { position:absolute; right:-2.5rem; top:2rem; width:14rem; height:14rem; border-radius:50%; display:grid; place-items:center; background:rgba(255,255,255,.34); transform:rotate(8deg); }
 .game-art-ring { position:absolute; inset:1.1rem; border:2px dashed rgba(68,53,76,.18); border-radius:50%; }
 .game-art-icon { width:6.5rem;height:6.5rem;color:rgba(61,50,76,.75);stroke-width:1.2; }
