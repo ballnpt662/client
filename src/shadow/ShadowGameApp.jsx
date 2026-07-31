@@ -1,6 +1,7 @@
 import React,{useState} from 'react';
 import { AlertCircle, CheckCircle2, Copy, Fingerprint, LogOut, Search, ShieldCheck, Users, Vote, X } from 'lucide-react';
 import {useShadowGame} from './useShadowGame';
+import GameEffects from '../components/GameEffects';
 const roleNames={DETECTIVE:'นักสืบ',ANALYST:'นักวิเคราะห์หลักฐาน',GUARDIAN:'ผู้คุ้มกัน',WITNESS:'พยาน',CULPRIT:'ผู้ก่อเหตุ'};
 const phaseNames={INVESTIGATION:'ช่วงสืบสวน',DISCUSSION:'ช่วงประชุม',VOTING:'ช่วงลงคะแนน',GAME_OVER:'จบคดี'};
 
@@ -15,4 +16,4 @@ function Board({g}){const s=g.state,p=g.privateState,me=g.roomInfo.playerId,isHo
 <aside className="shadow-paper rounded-2xl p-4"><h2 className="font-display text-lg font-black">บันทึกเหตุการณ์</h2><div className="mt-3 max-h-[650px] space-y-2 overflow-y-auto">{[...s.eventLog].reverse().map(x=><div key={x.id} className="rounded-xl border border-[#ebe4eb] bg-white/60 p-3 text-sm leading-5">{x.text}</div>)}</div></aside></div></div>
 {g.privateResult&&<div className="fixed inset-0 z-50 grid place-items-center bg-[#2d2537]/40 p-4 backdrop-blur-sm"><div className="shadow-paper relative max-w-sm rounded-3xl p-7 text-center"><button onClick={()=>g.setPrivateResult(null)} className="absolute right-4 top-4"><X/></button><Fingerprint className="mx-auto h-10 w-10 text-[#a35f77]"/><h2 className="mt-3 text-xl font-black">{g.privateResult.title}</h2><p className="mt-2 leading-7 text-[#665d6e]">{g.privateResult.message}</p><p className="mt-4 text-xs font-bold text-[#9a909e]">ข้อมูลนี้มีเพียงคุณที่เห็น</p></div></div>}
 {s.phase==='GAME_OVER'&&<div className="fixed inset-0 z-50 grid place-items-center bg-[#2d2537]/70 p-4 backdrop-blur"><div className="shadow-paper max-w-md rounded-3xl p-8 text-center"><Fingerprint className="mx-auto h-14 w-14 text-[#a35f77]"/><p className="mt-4 text-sm font-black tracking-widest">CASE CLOSED</p><h2 className="font-display mt-2 text-3xl font-black">{s.winner==='INVESTIGATORS'?'ฝ่ายสืบสวนไขคดีสำเร็จ!':'ผู้ก่อเหตุหลบหนีไปได้!'}</h2>{isHost?<button onClick={()=>g.terminate()} className="mt-6 rounded-xl bg-[#41364d] px-6 py-3 font-black text-white">กลับห้องรอเล่นใหม่</button>:<p className="mt-5 text-sm">รอเจ้าของห้องเปิดเกมใหม่</p>}</div></div>}</div>}
-export default function ShadowGameApp(){const g=useShadowGame();if(!g.roomInfo)return <Entry g={g}/>;if(!g.state||g.roomInfo.phase==='LOBBY')return <Lobby g={g}/>;return <Board g={g}/>}
+export default function ShadowGameApp(){const g=useShadowGame();if(!g.roomInfo)return <Entry g={g}/>;if(!g.state||g.roomInfo.phase==='LOBBY')return <Lobby g={g}/>;return <><Board g={g}/><GameEffects phase={g.state.phase}eventLog={g.state.eventLog}/></>}

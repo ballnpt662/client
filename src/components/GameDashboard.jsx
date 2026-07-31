@@ -10,6 +10,7 @@ import SeerToastModal from './SeerToastModal';
 import GameOverScreen from './GameOverScreen';
 import { MoreHorizontal, X, Sparkles, ScrollText, ChevronDown, ChevronUp } from 'lucide-react';
 import { getActionTitle, PHASE_THAI_TEXT } from '../utils/textHelpers';
+import GameEffects from './GameEffects';
 
 export default function GameDashboard({
   publicState,
@@ -70,6 +71,8 @@ export default function GameDashboard({
 
   return (
     <div className="game-shell min-h-screen text-slate-800 flex flex-col relative">
+      <div className="game-ambient" aria-hidden="true"><i/><i/><i/></div>
+      <GameEffects phase={phase} eventLog={eventLog} coins={myPlayer.coins || 0} />
       {/* 1. Header */}
       <Header
         phase={phase}
