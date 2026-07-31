@@ -11,7 +11,7 @@ export default function LobbyScreen({
 
   const roomId = roomInfo?.roomId || '';
   const players = roomInfo?.players || [];
-  const hostId = roomInfo?.hostId || '';
+  const hostId = roomInfo?.hostPlayerId || '';
   const isHost = currentUserId === hostId;
   const playerLength = players.length;
   const canStart = playerLength >= 3 && playerLength <= 6;

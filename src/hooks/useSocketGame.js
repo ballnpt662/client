@@ -48,7 +48,7 @@ export function useSocketGame() {
               playerId: res.playerId,
               reconnectToken: savedToken,
               players: res.room?.players || [],
-              hostId: res.room?.hostId,
+              hostPlayerId: res.room?.hostPlayerId,
             });
             if (res.state) {
               setPublicState(res.state);
@@ -89,9 +89,17 @@ export function useSocketGame() {
       }, 5000);
     });
 
-    socket.on('room:updated', ({ room }) => {
-      if (room) {
-        setRoomInfo((prev) => (prev ? { ...prev, players: room.players, hostId: room.hostId } : null));
+    socket.on('room:updated', (updatedRoom) => {
+      if (updatedRoom) {
+        setRoomInfo((prev) =>
+          prev
+            ? {
+                ...prev,
+                players: updatedRoom.players || [],
+                hostPlayerId: updatedRoom.hostPlayerId,
+              }
+            : prev
+        );
       }
     });
 
@@ -130,7 +138,7 @@ export function useSocketGame() {
             playerId: res.playerId,
             reconnectToken: res.reconnectToken,
             players: res.room?.players || [],
-            hostId: res.room?.hostId,
+            hostPlayerId: res.room?.hostPlayerId,
           });
           resolve(res);
         } else {
@@ -162,7 +170,7 @@ export function useSocketGame() {
             playerId: res.playerId,
             reconnectToken: res.reconnectToken,
             players: res.room?.players || [],
-            hostId: res.room?.hostId,
+            hostPlayerId: res.room?.hostPlayerId,
           });
           resolve(res);
         } else {
@@ -185,7 +193,7 @@ export function useSocketGame() {
             playerId: res.playerId,
             reconnectToken: reconnectToken,
             players: res.room?.players || [],
-            hostId: res.room?.hostId,
+            hostPlayerId: res.room?.hostPlayerId,
           });
           if (res.state) {
             setPublicState(res.state);
