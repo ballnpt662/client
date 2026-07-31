@@ -1,12 +1,14 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSocketGame } from './hooks/useSocketGame';
 import MainScreen from './components/MainScreen';
 import LobbyScreen from './components/LobbyScreen';
 import GameDashboard from './components/GameDashboard';
 import ConnectionOverlay from './components/ConnectionOverlay';
 import { soundManager } from './utils/soundManager';
+import GameStore from './components/GameStore';
+import ShadowGameApp from './shadow/ShadowGameApp';
 
-export default function App() {
+function CardBluffApp() {
   const {
     connectionState,
     isConnected,
@@ -162,5 +164,21 @@ export default function App() {
       hostPlayerId={roomInfo?.hostPlayerId}
       connectionState={connectionState}
     /></>
+  );
+}
+
+export default function App() {
+  const [selectedGame, setSelectedGame] = useState(() => localStorage.getItem('board_game_selection') || '');
+  const selectGame = (game) => { localStorage.setItem('board_game_selection', game); setSelectedGame(game); };
+  const goStore = () => { localStorage.removeItem('board_game_selection'); setSelectedGame(''); };
+
+  if (!selectedGame) return <GameStore onSelect={selectGame} />;
+  return (
+    <div className="relative">
+      <button onClick={goStore} className="fixed left-3 top-3 z-[70] rounded-full border border-white/60 bg-white/90 px-4 py-2 text-sm font-bold text-slate-700 shadow-lg backdrop-blur hover:bg-white" aria-label="กลับไปเลือกร้านเกม">
+        ← ร้านเกม
+      </button>
+      {selectedGame === 'shadow-detective' ? <ShadowGameApp /> : <CardBluffApp />}
+    </div>
   );
 }

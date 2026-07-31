@@ -41,10 +41,18 @@ export default function ActionMenu({
     if (!canAct) return;
     if (isForcedCoup && actionType !== 'COUP') return;
 
-    setSelectedAction(actionType);
-
     // Check if target is needed (COUP, AXE, STEAL, SEER)
     const needsTarget = ['COUP', 'AXE', 'STEAL', 'SEER'].includes(actionType);
+    if (!needsTarget) {
+      // INCOME and SHIELD_INCOME resolve without a target. Send immediately;
+      // previously these only changed local selection and timed out to INCOME.
+      onExecuteAction({ actionType });
+      setSelectedAction(null);
+      setSelectedTargetId('');
+      return;
+    }
+
+    setSelectedAction(actionType);
     if (needsTarget) {
       // Pick first active opponent by default if available
       const defaultTarget = activeOpponents[0]?.id || '';
@@ -54,9 +62,6 @@ export default function ActionMenu({
       if (actionType === 'COUP' || actionType === 'AXE') {
         setShowConfirmModal(true);
       }
-    } else {
-      // INCOME or SHIELD_INCOME does not need target
-      setSelectedTargetId('');
     }
   };
 

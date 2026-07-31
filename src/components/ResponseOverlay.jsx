@@ -25,6 +25,8 @@ export default function ResponseOverlay({
   const isSource = currentUserId === currentAction?.sourcePlayerId;
   const isTarget = currentUserId === currentAction?.targetPlayerId;
   const isCounter = currentUserId === currentAction?.counterPlayerId;
+  const currentPlayer = players[currentUserId] || {};
+  const isSpectator = Boolean(currentPlayer.isEliminated);
 
   // Determine allowed counter roles based on action type
   let availableCounterRoles = [];
@@ -87,7 +89,11 @@ export default function ResponseOverlay({
           )}
         </div>
 
-        {/* Response Action Buttons */}
+        {isSpectator ? (
+          <div className="rounded-xl bg-slate-100 border border-slate-200 px-4 py-3 text-center text-sm font-semibold text-slate-600">
+            คุณตกรอบแล้ว · รับชมเกมต่อได้
+          </div>
+        ) : (
         <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
           {/* Challenge Button (available to active players except source in CHALLENGE_ACTION; except counter player in CHALLENGE_COUNTER) */}
           {((phase === 'CHALLENGE_ACTION' && !isSource) || (phase === 'CHALLENGE_COUNTER' && !isCounter && !isTarget)) && (
@@ -125,6 +131,7 @@ export default function ResponseOverlay({
             <span>ผ่าน (ไม่ทำอะไร)</span>
           </button>
         </div>
+        )}
       </div>
     </div>
   );

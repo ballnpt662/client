@@ -136,6 +136,9 @@ export function translateError(errorStr) {
   if (errorStr.includes('PLAYER_NOT_FOUND')) {
     return 'ไม่พบข้อมูลผู้เล่นในห้องนี้';
   }
+  if (errorStr.includes('PLAYER_ELIMINATED')) {
+    return 'คุณตกรอบแล้ว สามารถรับชมเกมต่อได้เท่านั้น';
+  }
   if (errorStr.includes('ONLY_HOST_CAN')) {
     return 'เฉพาะหัวหน้าห้องเท่านั้นที่ทำได้';
   }

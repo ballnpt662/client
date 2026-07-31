@@ -87,6 +87,28 @@
   }
 }
 
+/* Board-game café and Shadow Detective */
+.font-display { font-family: 'Kanit', sans-serif; }
+.store-shell { position: relative; background: #f6efe6; color: #342a43; }
+.store-shell::before { content:''; position:fixed; inset:0; opacity:.22; pointer-events:none; background-image:radial-gradient(#766a78 0.7px,transparent .7px); background-size:18px 18px; }
+.store-glow { position:fixed; border-radius:999px; filter:blur(8px); opacity:.65; pointer-events:none; }
+.store-glow-one { width:32rem;height:32rem;background:#f2cdd4;right:-12rem;top:-13rem; }
+.store-glow-two { width:28rem;height:28rem;background:#dce8c7;left:-13rem;bottom:-14rem; }
+.game-box { position:relative; min-height:430px; overflow:hidden; border:1px solid rgba(255,255,255,.8); border-radius:2rem; box-shadow:0 20px 55px rgba(73,56,69,.12); }
+.game-box-shadow { background:linear-gradient(145deg,#f4dbe1,#e2ddec); }
+.game-box-bluff { background:linear-gradient(145deg,#e5edcf,#d9e5ed); }
+.game-art { position:absolute; right:-2.5rem; top:2rem; width:14rem; height:14rem; border-radius:50%; display:grid; place-items:center; background:rgba(255,255,255,.34); transform:rotate(8deg); }
+.game-art-ring { position:absolute; inset:1.1rem; border:2px dashed rgba(68,53,76,.18); border-radius:50%; }
+.game-art-icon { width:6.5rem;height:6.5rem;color:rgba(61,50,76,.75);stroke-width:1.2; }
+.game-art-star { position:absolute;left:1.5rem;top:1.5rem;font-size:2rem;color:#a35f77; }
+.shadow-shell { background:#f2ece4; color:#3b3045; background-image:radial-gradient(rgba(86,67,91,.1) .7px,transparent .7px);background-size:16px 16px; }
+.shadow-paper { border:1px solid rgba(255,255,255,.75); background:rgba(255,252,247,.9); box-shadow:0 18px 55px rgba(62,47,67,.12); backdrop-filter:blur(14px); }
+.shadow-input { width:100%;border:1px solid #dfd5df;background:rgba(255,255,255,.8);border-radius:.8rem;padding:.85rem 1rem;outline:none;color:#3b3045; }
+.shadow-input:focus { border-color:#a35f77;box-shadow:0 0 0 3px rgba(163,95,119,.12); }
+.shadow-action { display:flex;min-height:70px;align-items:center;justify-content:center;gap:.4rem;border-radius:.8rem;background:#41364d;color:white;padding:.75rem;font-size:.8rem;font-weight:800; }
+.shadow-action svg { width:1rem;height:1rem; }.shadow-action:disabled{opacity:.35;cursor:not-allowed;}
+@media(max-width:640px){.game-art{width:10rem;height:10rem;right:-3rem;top:3rem}.game-art-icon{width:4rem;height:4rem}.game-box{min-height:460px}}
+
 /* ──────────────────────────────────────────
    SURFACE CARD
 ────────────────────────────────────────── */
