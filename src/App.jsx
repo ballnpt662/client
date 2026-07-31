@@ -8,7 +8,7 @@ import { soundManager } from './utils/soundManager';
 import GameStore from './components/GameStore';
 import ShadowGameApp from './shadow/ShadowGameApp';
 
-function CardBluffApp() {
+function CardBluffApp({ inviteRoomId = '' }) {
   const {
     connectionState,
     isConnected,
@@ -117,6 +117,7 @@ function CardBluffApp() {
       <>
         <ConnectionOverlay state={connectionState} />
         <MainScreen
+          initialRoomId={inviteRoomId}
           onCreateRoom={createRoom}
           onJoinRoom={joinRoom}
           onReconnect={reconnectRoom}
@@ -168,7 +169,10 @@ function CardBluffApp() {
 }
 
 export default function App() {
-  const [selectedGame, setSelectedGame] = useState(() => localStorage.getItem('board_game_selection') || '');
+  const invite = new URLSearchParams(window.location.search);
+  const inviteGame = invite.get('game');
+  const inviteRoomId = (invite.get('room') || '').toUpperCase().slice(0, 6);
+  const [selectedGame, setSelectedGame] = useState(() => inviteGame || localStorage.getItem('board_game_selection') || '');
   const selectGame = (game) => { localStorage.setItem('board_game_selection', game); setSelectedGame(game); };
   const goStore = () => { localStorage.removeItem('board_game_selection'); setSelectedGame(''); };
 
@@ -178,7 +182,7 @@ export default function App() {
       <button onClick={goStore} className="fixed left-3 top-3 z-[70] rounded-full border border-white/60 bg-white/90 px-4 py-2 text-sm font-bold text-slate-700 shadow-lg backdrop-blur hover:bg-white" aria-label="กลับไปเลือกร้านเกม">
         ← ร้านเกม
       </button>
-      {selectedGame === 'shadow-detective' ? <ShadowGameApp /> : <CardBluffApp />}
+      {selectedGame === 'shadow-detective' ? <ShadowGameApp inviteRoomId={inviteRoomId} /> : <CardBluffApp inviteRoomId={inviteRoomId} />}
     </div>
   );
 }

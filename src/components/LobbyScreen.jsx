@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Users, Crown, Copy, Check, Play, LogOut, Trash2, Wifi, WifiOff, X } from 'lucide-react';
+import RoomInviteQR from './RoomInviteQR';
 
 export default function LobbyScreen({
   roomInfo,
@@ -50,6 +51,8 @@ export default function LobbyScreen({
           </div>
           <p className="text-xs text-slate-500">แชร์รหัสห้องนี้ให้เพื่อน 3–6 คนเพื่อเริ่มเล่น</p>
         </div>
+
+        <RoomInviteQR roomId={roomId} game="card-bluff" />
 
         {/* Player Count Bar */}
         <div className="flex items-center justify-between px-4 py-3 bg-violet-50 rounded-2xl border border-violet-100">

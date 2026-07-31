@@ -2,14 +2,15 @@ import React, { useState } from 'react';
 import { Shield, PlusCircle, LogIn, AlertCircle } from 'lucide-react';
 
 export default function MainScreen({
+  initialRoomId = '',
   onCreateRoom,
   onJoinRoom,
   errorMessage,
   isLoading,
 }) {
-  const [activeTab, setActiveTab] = useState('create'); // 'create' | 'join'
+  const [activeTab, setActiveTab] = useState(initialRoomId ? 'join' : 'create'); // 'create' | 'join'
   const [playerName, setPlayerName] = useState('');
-  const [roomId, setRoomId] = useState('');
+  const [roomId, setRoomId] = useState(initialRoomId);
 
   const handleCreateSubmit = (e) => {
     e.preventDefault();
