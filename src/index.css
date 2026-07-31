@@ -109,6 +109,13 @@
 .shadow-action svg { width:1rem;height:1rem; }.shadow-action:disabled{opacity:.35;cursor:not-allowed;}
 @media(max-width:640px){.game-art{width:10rem;height:10rem;right:-3rem;top:3rem}.game-art-icon{width:4rem;height:4rem}.game-box{min-height:460px}}
 
+/* Action confirmation lives in document.body so the fixed action dock cannot clip it. */
+.action-confirm-backdrop { position:fixed; inset:0; z-index:100; display:grid; place-items:center; overflow-y:auto; padding:max(1rem,env(safe-area-inset-top)) 1rem max(1rem,env(safe-area-inset-bottom)); background:rgba(35,31,47,.55); backdrop-filter:blur(10px); }
+.action-confirm-modal { display:flex; width:min(100%,30rem); max-height:calc(100dvh - 2rem); flex-direction:column; overflow:hidden; border:1px solid rgba(255,255,255,.85); border-radius:1.75rem; background:#fff; box-shadow:0 28px 80px rgba(45,38,59,.28); }
+.action-confirm-scroll { min-height:0; overflow-y:auto; padding:1.25rem 1.25rem .75rem; overscroll-behavior:contain; }
+.action-confirm-footer { display:grid; flex-shrink:0; grid-template-columns:.8fr 1.2fr; gap:.65rem; border-top:1px solid #ece8f0; background:rgba(255,255,255,.98); padding:.8rem 1.25rem max(.8rem,env(safe-area-inset-bottom)); }
+@media(max-height:650px){.action-confirm-modal{max-height:calc(100dvh - 1rem)}.action-confirm-scroll{padding-top:.9rem}.action-confirm-scroll fieldset{margin-top:.75rem}.action-confirm-scroll>div.mt-4{margin-top:.65rem}}
+
 /* ──────────────────────────────────────────
    SURFACE CARD
 ────────────────────────────────────────── */

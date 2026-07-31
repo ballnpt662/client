@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ACTION_INFO } from '../utils/textHelpers';
 import { Coins, Swords, Axe, Shield, UserX, Eye, AlertTriangle, Check, X } from 'lucide-react';
 
@@ -17,6 +18,26 @@ export default function ActionMenu({
   const isWaitingActionPhase = phase === 'WAITING_FOR_ACTION';
   const canAct = isMyTurn && isWaitingActionPhase;
   const isForcedCoup = myCoins >= 10;
+  const selectedTarget = activeOpponents.find((player) => player.id === selectedTargetId);
+  const selectedCost = selectedAction === 'COUP' ? 7 : selectedAction === 'AXE' ? 3 : 0;
+
+  useEffect(() => {
+    if (!showConfirmModal) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setShowConfirmModal(false);
+        setSelectedAction(null);
+        setSelectedTargetId('');
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showConfirmModal]);
 
   const getActionIcon = (type) => {
     switch (type) {
@@ -179,59 +200,66 @@ export default function ActionMenu({
       )}
 
       {/* Confirmation Modal for COUP and AXE */}
-      {showConfirmModal && selectedAction && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-50 animate-fade-in">
-          <div className="w-full max-w-sm glass-modal rounded-2xl p-5 shadow-2xl border border-amber-500/40 space-y-4">
-            <div className="flex items-center space-x-2 text-amber-400">
-              <AlertTriangle className="w-5 h-5" />
-              <h3 className="font-bold text-base">ยืนยันการใช้แอ็กชัน</h3>
+      {showConfirmModal && selectedAction && createPortal(
+        <div className="action-confirm-backdrop animate-fade-in" role="dialog" aria-modal="true" aria-labelledby="action-confirm-title">
+          <div className="action-confirm-modal">
+            <div className="action-confirm-scroll">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <span className="grid h-11 w-11 flex-shrink-0 place-items-center rounded-2xl bg-amber-100 text-amber-600">
+                    {getActionIcon(selectedAction)}
+                  </span>
+                  <div>
+                    <p className="text-[11px] font-bold tracking-[.16em] text-amber-600">CONFIRM ACTION</p>
+                    <h3 id="action-confirm-title" className="text-lg font-black text-slate-800">{ACTION_INFO[selectedAction]?.title}</h3>
+                  </div>
+                </div>
+                <button onClick={() => { setShowConfirmModal(false); setSelectedAction(null); setSelectedTargetId(''); }} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200" aria-label="ปิดหน้าต่างยืนยัน">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="rounded-2xl bg-amber-50 p-3">
+                  <p className="text-[11px] font-semibold text-amber-700">ค่าใช้จ่าย</p>
+                  <p className="mt-1 text-lg font-black text-amber-800">{selectedCost} เหรียญ</p>
+                </div>
+                <div className="rounded-2xl bg-violet-50 p-3">
+                  <p className="text-[11px] font-semibold text-violet-600">เหรียญหลังใช้</p>
+                  <p className="mt-1 text-lg font-black text-violet-800">{Math.max(0, myCoins - selectedCost)} เหรียญ</p>
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600">
+                {selectedAction === 'COUP'
+                  ? 'การโจมตีนี้สำเร็จแน่นอน เป้าหมายไม่สามารถท้าทายหรือใช้บทบาทป้องกันได้'
+                  : 'เป้าหมายสามารถอ้างบทบาทโล่เพื่อป้องกัน และผู้เล่นอื่นอาจท้าทายคำกล่าวอ้างได้'}
+              </div>
+
+              <fieldset className="mt-5">
+                <legend className="mb-2 text-xs font-bold text-slate-700">เลือกผู้เล่นเป้าหมาย</legend>
+                <div className="grid max-h-44 gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
+                  {activeOpponents.map((opp) => (
+                    <button type="button" key={opp.id} onClick={() => setSelectedTargetId(opp.id)} className={`rounded-xl border p-3 text-left transition ${selectedTargetId === opp.id ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-100' : 'border-slate-200 bg-white hover:border-violet-300'}`}>
+                      <span className="block truncate text-sm font-black text-slate-800">{opp.name}</span>
+                      <span className="mt-1 block text-[11px] font-semibold text-slate-500">{opp.coins} เหรียญ · {opp.hiddenCardCount ?? opp.cards?.filter((card) => !card.isRevealed).length ?? '?'} การ์ดคว่ำ</span>
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+
+              {selectedTarget && <p className="mt-3 text-center text-xs font-semibold text-slate-500">เป้าหมายที่เลือก: <span className="text-slate-800">{selectedTarget.name}</span></p>}
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
-              คุณกำลังจะใช้ <span className="font-bold text-amber-400">{ACTION_INFO[selectedAction]?.title}</span> ({ACTION_INFO[selectedAction]?.costText})
-            </p>
-
-            {/* Target Select */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-slate-300">
-                เลือกเป้าหมาย:
-              </label>
-              <select
-                value={selectedTargetId}
-                onChange={(e) => setSelectedTargetId(e.target.value)}
-                className="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-amber-500"
-              >
-                {activeOpponents.map((opp) => (
-                  <option key={opp.id} value={opp.id}>
-                    {opp.name} ({opp.coins} เหรียญ)
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Buttons */}
-            <div className="flex items-center justify-end space-x-2 pt-2">
-              <button
-                onClick={() => {
-                  setShowConfirmModal(false);
-                  setSelectedAction(null);
-                }}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700 transition-colors flex items-center space-x-1"
-              >
-                <X className="w-3.5 h-3.5" />
-                <span>ยกเลิก</span>
-              </button>
-              <button
-                onClick={handleConfirmSubmit}
-                disabled={!selectedTargetId}
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 disabled:opacity-50 text-slate-950 text-xs font-bold rounded-xl shadow-lg transition-colors flex items-center space-x-1"
-              >
-                <Check className="w-3.5 h-3.5" />
-                <span>ยืนยัน</span>
+            <div className="action-confirm-footer">
+              <button onClick={() => { setShowConfirmModal(false); setSelectedAction(null); setSelectedTargetId(''); }} className="rounded-xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-200">ยกเลิก</button>
+              <button onClick={handleConfirmSubmit} disabled={!selectedTargetId} className="flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 py-3 text-sm font-black text-slate-900 shadow-lg shadow-amber-200 hover:bg-amber-400 disabled:opacity-40">
+                <Check className="h-4 w-4" /> ยืนยันโจมตี
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
