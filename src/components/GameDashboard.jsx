@@ -8,7 +8,8 @@ import ResponseOverlay from './ResponseOverlay';
 import RevealCardModal from './RevealCardModal';
 import SeerToastModal from './SeerToastModal';
 import GameOverScreen from './GameOverScreen';
-import { MoreHorizontal, X } from 'lucide-react';
+import { MoreHorizontal, X, Sparkles, ScrollText, ChevronDown, ChevronUp } from 'lucide-react';
+import { getActionTitle, PHASE_THAI_TEXT } from '../utils/textHelpers';
 
 export default function GameDashboard({
   publicState,
@@ -32,6 +33,7 @@ export default function GameDashboard({
   const [showRoomMenu, setShowRoomMenu] = useState(false);
   const [showTerminateConfirm, setShowTerminateConfirm] = useState(false);
   const [isTerminating, setIsTerminating] = useState(false);
+  const [showLog, setShowLog] = useState(false);
 
   if (!publicState) return null;
 
@@ -48,6 +50,8 @@ export default function GameDashboard({
   const myPlayer = players[currentUserId] || {};
   const isMyTurn = currentUserId === currentTurnPlayerId;
   const currentTurnPlayer = players[currentTurnPlayerId] || {};
+  const sourcePlayer = players[currentAction?.sourcePlayerId] || {};
+  const targetPlayer = players[currentAction?.targetPlayerId] || {};
 
   // Check if logged-in player is designated revealer in SELECT_CARD_TO_REVEAL phase
   const isRevealer =
@@ -65,7 +69,7 @@ export default function GameDashboard({
   };
 
   return (
-    <div className="min-h-screen bg-[#f7f5ff] text-slate-800 flex flex-col justify-between relative pb-20 sm:pb-0">
+    <div className="game-shell min-h-screen text-slate-800 flex flex-col relative">
       {/* 1. Header */}
       <Header
         phase={phase}
@@ -75,47 +79,62 @@ export default function GameDashboard({
         roomId={roomId}
       />
       {isHost && onTerminateGame && phase !== 'GAME_OVER' && (
-        <div className="fixed right-3 top-16 z-40">
+        <div className="fixed right-3 top-[4.5rem] z-40">
           <button onClick={() => setShowRoomMenu((v) => !v)} className="w-10 h-10 rounded-full bg-white border border-violet-100 shadow-md flex items-center justify-center" aria-label="เมนูห้อง"><MoreHorizontal className="w-5 h-5" /></button>
           {showRoomMenu && <button onClick={() => { setShowRoomMenu(false); setShowTerminateConfirm(true); }} className="absolute right-0 mt-2 whitespace-nowrap rounded-xl bg-white border border-rose-100 shadow-lg px-4 py-2.5 text-sm text-rose-600 font-medium">ยุติเกม</button>}
         </div>
       )}
 
-      {/* Main Content Body */}
-      <div className="flex-1 max-w-4xl w-full mx-auto p-2 sm:p-4 space-y-4">
-        {/* 2. Other Players Panel */}
-        <OtherPlayersPanel
-          players={players}
-          currentUserId={currentUserId}
-          currentTurnPlayerId={currentTurnPlayerId}
-          selectedTargetId={selectedTargetId}
-          onSelectTarget={handleTargetSelect}
-          selectable={isMyTurn && phase === 'WAITING_FOR_ACTION'}
-        />
+      <main className="game-board flex-1 w-full max-w-6xl mx-auto px-3 sm:px-5 py-4 sm:py-6">
+        <section className={`turn-stage ${isMyTurn ? 'turn-stage--mine' : ''}`} aria-live="polite">
+          <div className="turn-stage__icon"><Sparkles className="w-5 h-5" /></div>
+          <div className="min-w-0 flex-1">
+            <p className="turn-stage__eyebrow">{isMyTurn ? 'ถึงตาของคุณแล้ว' : `ตาของ ${currentTurnPlayer.name || 'ผู้เล่น'}`}</p>
+            <h2>{currentAction ? `${sourcePlayer.name || 'ผู้เล่น'} ใช้ ${getActionTitle(currentAction.actionType)}` : PHASE_THAI_TEXT[phase] || 'กำลังดำเนินเกม'}</h2>
+            <p>{currentAction?.targetPlayerId ? `เป้าหมายคือ ${targetPlayer.name || 'ผู้เล่น'} · รอการตอบสนอง` : isMyTurn ? 'เลือกแอ็กชันจากแถบด้านล่างเพื่อเล่นตานี้' : 'ติดตามสถานการณ์และเตรียมตอบโต้'}</p>
+          </div>
+          <div className="turn-stage__time"><strong>{timerRemaining}</strong><span>วินาที</span></div>
+        </section>
 
-        {/* 3. Event Log */}
-        <EventLog eventLog={eventLog} />
-      </div>
+        <div className="game-layout">
+          <section className="table-panel">
+            <OtherPlayersPanel
+              players={players}
+              currentUserId={currentUserId}
+              currentTurnPlayerId={currentTurnPlayerId}
+              selectedTargetId={selectedTargetId}
+              onSelectTarget={handleTargetSelect}
+              selectable={isMyTurn && phase === 'WAITING_FOR_ACTION'}
+            />
+          </section>
 
-      {/* Sticky Bottom Area: Action Menu & My Cards */}
-      <div className="w-full max-w-4xl mx-auto space-y-0">
-        {/* 4. Action Menu */}
-        <ActionMenu
-          myCoins={myPlayer.coins || 0}
-          isMyTurn={isMyTurn}
-          phase={phase}
-          otherPlayers={Object.values(players).filter((p) => p.id !== currentUserId)}
-          onExecuteAction={canInteract ? onSendAction : () => {}}
-        />
+          <aside className="player-dock">
+            <div className="player-dock__heading"><div><span>พื้นที่ของคุณ</span><strong>{myPlayer.name || 'ผู้เล่น'}</strong></div><div className="coin-pill">● {myPlayer.coins || 0} เหรียญ</div></div>
+            <MyCards
+              myCards={myCards}
+              myCoins={myPlayer.coins || 0}
+              isSelectable={isRevealer}
+              selectedCardIndex={selectedRevealIndex}
+              onSelectCard={(idx) => setSelectedRevealIndex(idx)}
+            />
+            <button className="log-toggle" onClick={() => setShowLog((value) => !value)} aria-expanded={showLog}>
+              <span><ScrollText className="w-4 h-4" /> ประวัติเกม</span>{showLog ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+            {showLog && <EventLog eventLog={eventLog} />}
+          </aside>
+        </div>
+      </main>
 
-        {/* 5. My Cards */}
-        <MyCards
-          myCards={myCards}
-          myCoins={myPlayer.coins || 0}
-          isSelectable={isRevealer}
-          selectedCardIndex={selectedRevealIndex}
-          onSelectCard={(idx) => setSelectedRevealIndex(idx)}
-        />
+      <div className="action-dock">
+        <div className="w-full max-w-6xl mx-auto">
+          <ActionMenu
+            myCoins={myPlayer.coins || 0}
+            isMyTurn={isMyTurn}
+            phase={phase}
+            otherPlayers={Object.values(players).filter((p) => p.id !== currentUserId)}
+            onExecuteAction={canInteract ? onSendAction : () => {}}
+          />
+        </div>
       </div>
 
       {/* 6. Overlays & Modals */}

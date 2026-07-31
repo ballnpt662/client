@@ -17,17 +17,17 @@ export default function OtherPlayersPanel({
   }
 
   return (
-    <div className="w-full p-2 sm:p-4">
-      <div className="text-xs font-semibold text-slate-400 mb-2 px-1 flex items-center justify-between">
-        <span>ผู้เล่นอื่นในห้อง ({otherPlayers.length} คน)</span>
+    <div className="w-full p-3 sm:p-5">
+      <div className="table-panel__title">
+        <div><span>ผู้เล่นรอบโต๊ะ</span><strong>{otherPlayers.length} คน</strong></div>
         {selectable && (
-          <span className="text-amber-400 animate-pulse">
-            โปรดแตะเลือกผู้เล่นเป้าหมาย
+          <span className="target-hint">
+            เลือกเป้าหมาย
           </span>
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5">
+      <div className="player-grid">
         {otherPlayers.map((player) => {
           const isTurn = player.id === currentTurnPlayerId;
           const isSelected = selectedTargetId === player.id;
@@ -48,16 +48,19 @@ export default function OtherPlayersPanel({
           }
 
           return (
-            <div
+            <button
+              type="button"
               key={player.id}
+              disabled={!selectable || isEliminated}
               onClick={() => {
                 if (selectable && !isEliminated && onSelectTarget) {
                   onSelectTarget(player.id);
                 }
               }}
-              className={`relative rounded-xl p-3 border transition-all flex flex-col justify-between space-y-2.5 ${borderClass} ${
+              className={`player-seat relative rounded-xl p-3 border transition-all flex flex-col justify-between space-y-2.5 ${borderClass} ${
                 isEliminated ? 'opacity-50 grayscale' : ''
               }`}
+              aria-label={`${player.name} ${player.coins} เหรียญ${isSelected ? ' เลือกแล้ว' : ''}`}
             >
               {/* Player Header */}
               <div className="flex items-center justify-between">
@@ -123,7 +126,7 @@ export default function OtherPlayersPanel({
                   );
                 })}
               </div>
-            </div>
+            </button>
           );
         })}
       </div>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { PHASE_THAI_TEXT } from '../utils/textHelpers';
-import { Clock, Shield } from 'lucide-react';
+import { Clock, Spade } from 'lucide-react';
 
 export default function Header({
   phase,
@@ -24,50 +24,50 @@ export default function Header({
   const phaseTitle = PHASE_THAI_TEXT[phase] || phase || 'กำลังเล่น';
 
   return (
-    <div className="w-full glass-panel border-b border-slate-800 p-3 sm:p-4 space-y-2.5 sticky top-0 z-30 shadow-md">
+    <header className="game-header sticky top-0 z-30">
+      <div className="max-w-6xl mx-auto px-3 sm:px-5 py-3 space-y-3">
       {/* Top Info Bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center space-x-2">
-          <div className="p-1.5 bg-amber-500/10 text-amber-400 rounded-lg border border-amber-500/20">
-            <Shield className="w-4 h-4" />
+          <div className="game-mark">
+            <Spade className="w-4 h-4 fill-current" />
           </div>
-          <span className="text-xs font-mono font-bold tracking-wider text-amber-400">
-            #{roomId}
-          </span>
+          <div><span className="block text-[10px] font-semibold uppercase tracking-[.18em] text-slate-400">Card Bluff</span><span className="text-xs font-mono font-bold tracking-wider text-slate-700">ห้อง {roomId}</span></div>
         </div>
 
         {/* Phase Badge */}
-        <div className="px-3 py-1 bg-slate-950/80 rounded-full border border-slate-700/80 text-xs text-slate-300 font-medium">
+        <div className="phase-chip hidden sm:block">
           {phaseTitle}
         </div>
 
         {/* Timer Seconds Digital Badge */}
-        <div className="flex items-center space-x-1.5 px-2.5 py-1 bg-slate-950/80 rounded-full border border-slate-700/80 text-xs font-mono text-amber-300">
-          <Clock className="w-3.5 h-3.5 text-amber-400" />
-          <span>{timerRemaining}s</span>
+        <div className="timer-chip">
+          <Clock className="w-3.5 h-3.5" />
+          <span>{timerRemaining} วิ</span>
         </div>
       </div>
 
       {/* Turn Banner */}
-      <div className="text-center">
+      <div className="text-center sm:hidden">
         {isMyTurn ? (
-          <div className="inline-block px-4 py-1.5 bg-emerald-500/20 border border-emerald-500/40 rounded-full text-emerald-300 text-sm font-bold shadow-sm animate-pulse">
-            ★ ตาของคุณ! โปรดเลือกแอ็กชัน ★
+          <div className="text-sm font-bold text-violet-700">
+            ตาของคุณ · เลือกแอ็กชัน
           </div>
         ) : (
-          <div className="text-xs sm:text-sm text-slate-300 font-medium">
-            ตาของผู้เล่น: <span className="text-amber-400 font-semibold">{currentTurnPlayerName || '-'}</span>
+          <div className="text-xs text-slate-500 font-medium truncate">
+            ตาของ <span className="text-slate-800 font-semibold">{currentTurnPlayerName || '-'}</span>
           </div>
         )}
       </div>
 
       {/* Timer Progress Bar */}
-      <div className="w-full h-2 bg-slate-950/80 rounded-full overflow-hidden border border-slate-800">
+      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
         <div
           className={`h-full transition-all duration-300 ease-linear ${timerColorClass}`}
           style={{ width: `${pct}%` }}
         />
       </div>
-    </div>
+      </div>
+    </header>
   );
 }
