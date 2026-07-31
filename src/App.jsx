@@ -35,6 +35,7 @@ function CardBluffApp({ inviteRoomId = '' }) {
     sendCounter,
     sendPass,
     revealCard,
+    updateRoomConfig,
     leaveRoom,
     dismissSeerResult,
   } = useSocketGame();
@@ -144,6 +145,7 @@ function CardBluffApp({ inviteRoomId = '' }) {
           onStartGame={startGame}
           onLeaveRoom={leaveRoom}
           onCloseRoom={isHost ? closeRoom : null}
+          onUpdateConfig={updateRoomConfig}
           isHost={isHost}
           connectionState={connectionState}
         />

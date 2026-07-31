@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, Crown, Copy, Check, Play, LogOut, Trash2, Wifi, WifiOff, X } from 'lucide-react';
+import { Users, Crown, Copy, Check, Play, LogOut, Trash2, Wifi, WifiOff, X, Settings2, ChevronDown } from 'lucide-react';
 import RoomInviteQR from './RoomInviteQR';
 
 export default function LobbyScreen({
@@ -9,10 +9,12 @@ export default function LobbyScreen({
   onLeaveRoom,
   onCloseRoom,
   connectionState,
+  onUpdateConfig,
 }) {
   const [copied, setCopied] = useState(false);
   const [showCloseConfirm, setShowCloseConfirm] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const roomId = roomInfo?.roomId || '';
   const players = roomInfo?.players || [];
@@ -53,6 +55,26 @@ export default function LobbyScreen({
         </div>
 
         <RoomInviteQR roomId={roomId} game="card-bluff" />
+
+        {isHost && (
+          <section className="rounded-2xl border border-violet-100 bg-violet-50/60 overflow-hidden">
+            <button type="button" onClick={() => setShowSettings((v) => !v)} className="w-full flex items-center justify-between p-4 text-left">
+              <span className="flex items-center gap-2 font-bold text-slate-700"><Settings2 className="w-4 h-4 text-violet-500" /> ตั้งค่ากติกาห้อง</span>
+              <ChevronDown className={`w-4 h-4 transition-transform ${showSettings ? 'rotate-180' : ''}`} />
+            </button>
+            {showSettings && <div className="px-4 pb-4 grid sm:grid-cols-3 gap-4">
+              {[
+                ['turnSeconds', 'เวลาเลือกแอ็กชัน', 20, 90],
+                ['responseSeconds', 'เวลาตอบโต้', 8, 45],
+                ['revealSeconds', 'เวลาเปิดการ์ด', 8, 45],
+              ].map(([key, label, min, max]) => <label key={key} className="text-xs font-semibold text-slate-600">
+                <span className="flex justify-between mb-2"><span>{label}</span><b className="text-violet-600">{roomInfo?.config?.[key] ?? (key === 'turnSeconds' ? 45 : 15)} วิ</b></span>
+                <input className="w-full accent-violet-600" type="range" min={min} max={max} step="5" value={roomInfo?.config?.[key] ?? (key === 'turnSeconds' ? 45 : 15)} onChange={(e) => onUpdateConfig?.({ ...roomInfo.config, [key]: Number(e.target.value) }).catch(() => {})} />
+              </label>)}
+              <p className="sm:col-span-3 text-[11px] text-slate-500">การตั้งค่าจะบันทึกทันทีและใช้เมื่อเริ่มเกม</p>
+            </div>}
+          </section>
+        )}
 
         {/* Player Count Bar */}
         <div className="flex items-center justify-between px-4 py-3 bg-violet-50 rounded-2xl border border-violet-100">

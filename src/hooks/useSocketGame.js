@@ -78,6 +78,7 @@ export function useSocketGame() {
                 reconnectToken: session.reconnectToken,
                 players: res.room?.players || [],
                 hostPlayerId: res.room?.hostPlayerId,
+                config: res.room?.config,
               });
               if (res.state) {
                 setPublicState(res.state);
@@ -116,6 +117,7 @@ export function useSocketGame() {
                 reconnectToken: session.reconnectToken,
                 players: res.room?.players || [],
                 hostPlayerId: res.room?.hostPlayerId,
+                config: res.room?.config,
               });
               setPublicState(res.state || null);
               setTimerRemaining(res.state?.phaseTimerRemainingSeconds || 0);
@@ -185,6 +187,7 @@ export function useSocketGame() {
               ...prev,
               players: updatedRoom.players || [],
               hostPlayerId: updatedRoom.hostPlayerId,
+              config: updatedRoom.config || prev.config,
             }
           : prev
       );
@@ -246,6 +249,7 @@ export function useSocketGame() {
               reconnectToken: res.reconnectToken,
               players: res.room?.players || [],
               hostPlayerId: res.room?.hostPlayerId,
+              config: res.room?.config,
             });
             resolve(res);
           } else {
@@ -281,6 +285,7 @@ export function useSocketGame() {
               reconnectToken: res.reconnectToken,
               players: res.room?.players || [],
               hostPlayerId: res.room?.hostPlayerId,
+              config: res.room?.config,
             });
             resolve(res);
           } else {
@@ -309,6 +314,7 @@ export function useSocketGame() {
               reconnectToken,
               players: res.room?.players || [],
               hostPlayerId: res.room?.hostPlayerId,
+              config: res.room?.config,
             });
             if (res.state) {
               setPublicState(res.state);
@@ -455,6 +461,20 @@ export function useSocketGame() {
     if (seerTimerRef.current) clearTimeout(seerTimerRef.current);
   }, []);
 
+  const updateRoomConfig = useCallback((config) => new Promise((resolve, reject) => {
+    const roomId = roomInfoRef.current?.roomId;
+    if (!roomId || !socketRef.current?.connected) return reject(new Error('Not connected'));
+    socketRef.current.timeout(8000).emit('room:updateConfig', { roomId, config }, (err, res) => {
+      if (err || !res?.success) {
+        const message = res?.error || 'ไม่สามารถบันทึกการตั้งค่าห้องได้';
+        showError(message);
+        reject(err || new Error(message));
+        return;
+      }
+      resolve(res);
+    });
+  }), [showError]);
+
   const dismissSeerResult = useCallback(() => {
     if (seerTimerRef.current) clearTimeout(seerTimerRef.current);
     setSeerResult(null);
@@ -481,6 +501,7 @@ export function useSocketGame() {
     sendCounter,
     sendPass,
     revealCard,
+    updateRoomConfig,
     leaveRoom,
     dismissSeerResult,
     clearError: () => setError(null),
