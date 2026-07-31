@@ -99,6 +99,15 @@
 .game-box-bluff { background:linear-gradient(145deg,#e5edcf,#d9e5ed); }
 .game-box-nightfall { background:linear-gradient(145deg,#cbc4ee,#aebedb); }
 .game-box-tower{background:linear-gradient(145deg,#ded4f7,#c8e5ee)}.tower-bg{background:radial-gradient(circle at 85% 5%,rgba(172,215,238,.6),transparent 25rem),radial-gradient(circle at 5% 85%,rgba(203,189,242,.55),transparent 28rem),#f5f1ff;color:#302d43}.tower-card{width:100%;border:1px solid rgba(255,255,255,.85);border-radius:1.6rem;background:rgba(255,255,255,.88);box-shadow:0 18px 55px rgba(78,63,118,.12);backdrop-filter:blur(16px)}.tower-input{min-width:0;width:100%;border:1px solid #ddd5ef;border-radius:.85rem;background:white;padding:.85rem 1rem;outline:none}.tower-input:focus{border-color:#7768d8;box-shadow:0 0 0 3px rgba(119,104,216,.12)}.tower-header{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:4.5rem max(1rem,calc((100vw - 80rem)/2)) 1rem;background:rgba(255,255,255,.72);backdrop-filter:blur(16px)}.tower-stat{display:flex;align-items:center;gap:.3rem;border-radius:999px;background:white;padding:.55rem .75rem;font-size:.75rem;font-weight:800}.tower-stat svg{width:1rem;height:1rem}.tower-progress{height:.35rem;background:#e5dff1}.tower-progress i{display:block;height:100%;background:linear-gradient(90deg,#7768d8,#78cbb4);transition:width .8s ease}.tower-clue{display:grid;grid-template-columns:auto 1fr auto;gap:.65rem;align-items:start;border:1px solid #e7e1f2;border-radius:1rem;background:#faf8ff;padding:.8rem}.tower-clue>svg{width:1.1rem;color:#7768d8}.tower-clue b{font-size:.75rem}.tower-clue p{margin-top:.15rem;font-size:.78rem;color:#696377}.tower-clue button svg{width:1rem}.tower-float{animation:tower-float 3s ease-in-out infinite}.tower-door-open{animation:tower-door 1.4s cubic-bezier(.2,.8,.2,1) infinite alternate}@keyframes tower-float{50%{transform:translateY(-8px);filter:drop-shadow(0 12px 12px rgba(119,104,216,.25))}}@keyframes tower-door{to{transform:scale(1.08);filter:drop-shadow(0 0 18px rgba(78,202,153,.5))}}@media(max-width:640px){.tower-header{align-items:flex-start;flex-direction:column}.tower-stat{padding:.4rem .6rem}}
+
+/* Tower overlays render beside .tower-bg, so they must own their contrast colors. */
+.tower-card{color:#302d43}
+.tower-card label{color:#3f3a52}
+.tower-card .tower-input,.tower-card select,.tower-card input[type="number"]{color:#302d43;background-color:#fff;opacity:1}
+.tower-card .tower-input::placeholder{color:#777085;opacity:1}
+.tower-card select option{color:#302d43;background:#fff}
+.tower-card input[type="range"]{accent-color:#6d4ee8;opacity:1}
+.tower-card input[type="checkbox"]{accent-color:#6d4ee8}
 .game-art { position:absolute; right:-2.5rem; top:2rem; width:14rem; height:14rem; border-radius:50%; display:grid; place-items:center; background:rgba(255,255,255,.34); transform:rotate(8deg); }
 .game-art-ring { position:absolute; inset:1.1rem; border:2px dashed rgba(68,53,76,.18); border-radius:50%; }
 .game-art-icon { width:6.5rem;height:6.5rem;color:rgba(61,50,76,.75);stroke-width:1.2; }
