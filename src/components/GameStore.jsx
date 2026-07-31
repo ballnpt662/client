@@ -1,7 +1,8 @@
 import React from 'react';
-import { Clock3, Fingerprint, Shield, Sparkles, Users } from 'lucide-react';
+import { Clock3, Fingerprint, MoonStar, Shield, Sparkles, Users } from 'lucide-react';
 
 const games = [
+  { id:'nightfall-village', eyebrow:'โต๊ะใหญ่ประจำค่ำคืน', title:'หมู่บ้านรัตติกาล', subtitle:'เกมบทบาทลับ พูดคุย และตามหาฝ่ายหมาป่าใต้แสงจันทร์', players:'5–12 คน', time:'25–45 นาที', tags:['Social Deduction','บทบาทลับ','พูดคุย'], icon:MoonStar, tone:'nightfall' },
   { id:'shadow-detective', eyebrow:'คดีใหม่ประจำร้าน', title:'นักสืบเงา', subtitle:'ไขคดีในพิพิธภัณฑ์ ก่อนผู้ก่อเหตุจะกลบหลักฐาน', players:'4–6 คน', time:'15–25 นาที', tags:['บทบาทลับ','สืบสวน','ลงคะแนน'], icon:Fingerprint, tone:'shadow' },
   { id:'card-bluff', eyebrow:'เกมยอดนิยม', title:'Card Bluff', subtitle:'บลัฟบทบาท จับโกหก และรักษาการ์ดใบสุดท้าย', players:'3–6 คน', time:'10–20 นาที', tags:['บลัฟ','กลยุทธ์','ปาร์ตี้'], icon:Shield, tone:'bluff' },
 ];

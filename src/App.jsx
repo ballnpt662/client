@@ -7,6 +7,7 @@ import ConnectionOverlay from './components/ConnectionOverlay';
 import { soundManager } from './utils/soundManager';
 import GameStore from './components/GameStore';
 import ShadowGameApp from './shadow/ShadowGameApp';
+import NightfallGameApp from './nightfall/NightfallGameApp';
 
 function CardBluffApp({ inviteRoomId = '' }) {
   const {
@@ -182,7 +183,7 @@ export default function App() {
       <button onClick={goStore} className="fixed left-3 top-3 z-[70] rounded-full border border-white/60 bg-white/90 px-4 py-2 text-sm font-bold text-slate-700 shadow-lg backdrop-blur hover:bg-white" aria-label="กลับไปเลือกร้านเกม">
         ← ร้านเกม
       </button>
-      {selectedGame === 'shadow-detective' ? <ShadowGameApp inviteRoomId={inviteRoomId} /> : <CardBluffApp inviteRoomId={inviteRoomId} />}
+      {selectedGame === 'shadow-detective' ? <ShadowGameApp inviteRoomId={inviteRoomId} /> : selectedGame === 'nightfall-village' ? <NightfallGameApp inviteRoomId={inviteRoomId} /> : <CardBluffApp inviteRoomId={inviteRoomId} />}
     </div>
   );
 }
