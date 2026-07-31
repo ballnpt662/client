@@ -207,7 +207,7 @@ export default function App() {
   return (
     <div className="route-stage relative">
       <InteractionFeedback/>
-      <button onClick={goStore} className="fixed left-3 top-3 z-[70] rounded-full border border-white/60 bg-white/90 px-4 py-2 text-sm font-bold text-slate-700 shadow-lg backdrop-blur hover:bg-white" aria-label="กลับไปเลือกร้านเกม">
+      <button onClick={goStore} className="app-back-button fixed left-3 top-3 z-[70] rounded-full border border-white/60 bg-white/90 px-4 py-2 text-sm font-bold text-slate-700 shadow-lg backdrop-blur hover:bg-white" aria-label="กลับไปเลือกร้านเกม">
         ← ร้านเกม
       </button>
       {selectedGame === 'shadow-detective' ? <ShadowGameApp inviteRoomId={inviteRoomId} /> : selectedGame === 'nightfall-village' ? <NightfallGameApp inviteRoomId={inviteRoomId} /> : selectedGame === 'puzzle-tower' ? <PuzzleTowerApp inviteRoomId={inviteRoomId} /> : <CardBluffApp inviteRoomId={inviteRoomId} />}
