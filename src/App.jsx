@@ -10,6 +10,8 @@ import ShadowGameApp from './shadow/ShadowGameApp';
 import NightfallGameApp from './nightfall/NightfallGameApp';
 import { flushSync } from 'react-dom';
 import PuzzleTowerApp from './tower/PuzzleTowerApp';
+import InteractionFeedback from './components/InteractionFeedback';
+import { clearGameSession } from './utils/gameSessions';
 
 function CardBluffApp({ inviteRoomId = '' }) {
   const {
@@ -175,7 +177,7 @@ export default function App() {
   const invite = new URLSearchParams(window.location.search);
   const inviteGame = invite.get('game');
   const inviteRoomId = (invite.get('room') || '').toUpperCase().slice(0, 6);
-  const [selectedGame, setSelectedGame] = useState(() => inviteGame || localStorage.getItem('board_game_selection') || '');
+  const [selectedGame, setSelectedGame] = useState(() => inviteGame || '');
   const transitionTo = async (game, event) => {
     const rect = event?.currentTarget?.getBoundingClientRect();
     const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
@@ -185,8 +187,6 @@ export default function App() {
     document.documentElement.style.setProperty('--nav-y', `${y}px`);
     document.documentElement.style.setProperty('--nav-radius', `${radius}px`);
     const commit = () => {
-      if (game) localStorage.setItem('board_game_selection', game);
-      else localStorage.removeItem('board_game_selection');
       flushSync(() => setSelectedGame(game));
     };
     if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -203,9 +203,10 @@ export default function App() {
   const selectGame = (game, event) => transitionTo(game, event);
   const goStore = (event) => transitionTo('', event);
 
-  if (!selectedGame) return <div className="route-stage"><GameStore onSelect={selectGame} /></div>;
+  if (!selectedGame) return <div className="route-stage"><InteractionFeedback/><GameStore onSelect={selectGame} onStartNew={(game,event)=>{clearGameSession(game);selectGame(game,event)}} /></div>;
   return (
     <div className="route-stage relative">
+      <InteractionFeedback/>
       <button onClick={goStore} className="fixed left-3 top-3 z-[70] rounded-full border border-white/60 bg-white/90 px-4 py-2 text-sm font-bold text-slate-700 shadow-lg backdrop-blur hover:bg-white" aria-label="กลับไปเลือกร้านเกม">
         ← ร้านเกม
       </button>

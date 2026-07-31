@@ -86,14 +86,14 @@ export default function GameOverScreen({
           </div>
         </div>
 
-        {/* Return to Main Menu */}
-        <button
+        {/* Replay in the same room — host resets everyone to the lobby */}
+        {onReturnToMain ? <button
           onClick={onReturnToMain}
           className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-slate-950 font-bold rounded-xl shadow-lg transition-colors flex items-center justify-center space-x-2 text-base"
         >
           <RotateCcw className="w-5 h-5" />
-          <span>กลับสู่หน้าหลัก</span>
-        </button>
+          <span>เล่นอีกครั้งในห้องเดิม</span>
+        </button> : <p className="rounded-xl bg-slate-900/60 p-3 text-sm font-semibold text-slate-300">รอเจ้าของห้องกดเล่นอีกครั้ง...</p>}
       </div>
     </div>
   );

@@ -175,7 +175,7 @@ export default function GameDashboard({
           winnerPlayerId={winnerPlayerId}
           players={players}
           currentUserId={currentUserId}
-          onReturnToMain={onLeaveRoom}
+          onReturnToMain={onTerminateGame}
         />
       )}
       {showTerminateConfirm && (
