@@ -8,6 +8,7 @@ import { soundManager } from './utils/soundManager';
 import GameStore from './components/GameStore';
 import ShadowGameApp from './shadow/ShadowGameApp';
 import NightfallGameApp from './nightfall/NightfallGameApp';
+import { flushSync } from 'react-dom';
 
 function CardBluffApp({ inviteRoomId = '' }) {
   const {
@@ -174,12 +175,36 @@ export default function App() {
   const inviteGame = invite.get('game');
   const inviteRoomId = (invite.get('room') || '').toUpperCase().slice(0, 6);
   const [selectedGame, setSelectedGame] = useState(() => inviteGame || localStorage.getItem('board_game_selection') || '');
-  const selectGame = (game) => { localStorage.setItem('board_game_selection', game); setSelectedGame(game); };
-  const goStore = () => { localStorage.removeItem('board_game_selection'); setSelectedGame(''); };
+  const transitionTo = async (game, event) => {
+    const rect = event?.currentTarget?.getBoundingClientRect();
+    const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+    const y = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+    const radius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y));
+    document.documentElement.style.setProperty('--nav-x', `${x}px`);
+    document.documentElement.style.setProperty('--nav-y', `${y}px`);
+    document.documentElement.style.setProperty('--nav-radius', `${radius}px`);
+    const commit = () => {
+      if (game) localStorage.setItem('board_game_selection', game);
+      else localStorage.removeItem('board_game_selection');
+      flushSync(() => setSelectedGame(game));
+    };
+    if (document.startViewTransition && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const transition = document.startViewTransition(commit);
+      await transition.finished.catch(() => {});
+      return;
+    }
+    const fadeOut = document.documentElement.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 140, easing: 'ease-out', fill: 'forwards' });
+    await fadeOut.finished.catch(() => {});
+    commit();
+    fadeOut.cancel();
+    document.documentElement.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: 'ease-out' });
+  };
+  const selectGame = (game, event) => transitionTo(game, event);
+  const goStore = (event) => transitionTo('', event);
 
-  if (!selectedGame) return <GameStore onSelect={selectGame} />;
+  if (!selectedGame) return <div className="route-stage"><GameStore onSelect={selectGame} /></div>;
   return (
-    <div className="relative">
+    <div className="route-stage relative">
       <button onClick={goStore} className="fixed left-3 top-3 z-[70] rounded-full border border-white/60 bg-white/90 px-4 py-2 text-sm font-bold text-slate-700 shadow-lg backdrop-blur hover:bg-white" aria-label="กลับไปเลือกร้านเกม">
         ← ร้านเกม
       </button>
