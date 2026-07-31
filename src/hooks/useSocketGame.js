@@ -110,10 +110,19 @@ export function useSocketGame() {
   }, []);
 
   const createRoom = useCallback(async ({ playerName }) => {
+    if (!socketRef.current?.connected) {
+      showError('ยังไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณารอสักครู่');
+      return Promise.reject(new Error('Not connected'));
+    }
     setIsLoading(true);
     return new Promise((resolve, reject) => {
-      socketRef.current?.emit('room:create', { playerName }, (res) => {
+      socketRef.current.timeout(10000).emit('room:create', { playerName }, (err, res) => {
         setIsLoading(false);
+        if (err) {
+          showError('เซิร์ฟเวอร์ไม่ตอบกลับ กรุณาลองใหม่');
+          reject(err);
+          return;
+        }
         if (res?.success) {
           localStorage.setItem(RECONNECT_TOKEN_KEY, res.reconnectToken);
           setRoomInfo({
@@ -133,10 +142,19 @@ export function useSocketGame() {
   }, [showError]);
 
   const joinRoom = useCallback(async ({ roomId, playerName }) => {
+    if (!socketRef.current?.connected) {
+      showError('ยังไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้ กรุณารอสักครู่');
+      return Promise.reject(new Error('Not connected'));
+    }
     setIsLoading(true);
     return new Promise((resolve, reject) => {
-      socketRef.current?.emit('room:join', { roomId, playerName }, (res) => {
+      socketRef.current.timeout(10000).emit('room:join', { roomId, playerName }, (err, res) => {
         setIsLoading(false);
+        if (err) {
+          showError('เซิร์ฟเวอร์ไม่ตอบกลับ กรุณาลองใหม่');
+          reject(err);
+          return;
+        }
         if (res?.success) {
           localStorage.setItem(RECONNECT_TOKEN_KEY, res.reconnectToken);
           setRoomInfo({

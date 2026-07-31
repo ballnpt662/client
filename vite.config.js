@@ -6,6 +6,7 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    // Proxy ใช้เฉพาะ local dev เท่านั้น
     proxy: {
       '/socket.io': {
         target: 'http://localhost:3001',
@@ -14,9 +15,5 @@ export default defineConfig({
       },
     },
   },
-  define: {
-    'import.meta.env.VITE_SERVER_URL': JSON.stringify(
-      process.env.VITE_SERVER_URL || 'http://localhost:3001'
-    ),
-  },
+  // ไม่ต้องใส่ define — Vite จัดการ VITE_* env vars เองอัตโนมัติ
 });
