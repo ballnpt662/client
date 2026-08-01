@@ -1,8 +1,9 @@
 import React from 'react';
-import { Clock3, Fingerprint, LockKeyhole, MoonStar, Shield, Sparkles, Users } from 'lucide-react';
+import { Cat, Clock3, Fingerprint, LockKeyhole, MoonStar, Shield, Sparkles, Users } from 'lucide-react';
 import { getGameSession } from '../utils/gameSessions';
 
 const games = [
+  { id:'cat-chaos-circle', eyebrow:'วงไพ่เวทมนตร์เปิดใหม่', title:'เหมียวป่วนวงไพ่', subtitle:'เกมการ์ดปาร์ตี้กึ่ง 3D จั่วไพ่ วางแผน ป่วนเพื่อน และเอาตัวรอด', players:'2–6 คน', time:'10–20 นาที', tags:['การ์ดปาร์ตี้','Push your luck','แมวเวทมนตร์'], icon:Cat, tone:'cat' },
   { id:'puzzle-tower', eyebrow:'การผจญภัยแบบร่วมมือ', title:'หอคอยปริศนา', subtitle:'แบ่งปันข้อมูล ไขกลไก และเปิดประตูทั้งห้าชั้นไปด้วยกัน', players:'2–6 คน', time:'15–30 นาที', tags:['Co-op','Puzzle','สื่อสาร'], icon:LockKeyhole, tone:'tower' },
   { id:'nightfall-village', eyebrow:'โต๊ะใหญ่ประจำค่ำคืน', title:'หมู่บ้านรัตติกาล', subtitle:'เกมบทบาทลับ พูดคุย และตามหาฝ่ายหมาป่าใต้แสงจันทร์', players:'5–12 คน', time:'25–45 นาที', tags:['Social Deduction','บทบาทลับ','พูดคุย'], icon:MoonStar, tone:'nightfall' },
   { id:'shadow-detective', eyebrow:'คดีใหม่ประจำร้าน', title:'นักสืบเงา', subtitle:'ไขคดีในพิพิธภัณฑ์ ก่อนผู้ก่อเหตุจะกลบหลักฐาน', players:'4–6 คน', time:'15–25 นาที', tags:['บทบาทลับ','สืบสวน','ลงคะแนน'], icon:Fingerprint, tone:'shadow' },
